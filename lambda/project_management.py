@@ -1,0 +1,450 @@
+import json
+import boto3
+import os
+from datetime import datetime
+from typing import Dict, Any, List
+import uuid
+
+dynamodb = boto3.resource('dynamodb')
+projects_table = dynamodb.Table(os.environ['PROJECTS_TABLE'])
+tasks_table = dynamodb.Table(os.environ['TASKS_TABLE'])
+activities_table = dynamodb.Table(os.environ['ACTIVITIES_TABLE'])
+instruments_table = dynamodb.Table(os.environ['INSTRUMENTS_TABLE'])
+
+# CORS headers configuration
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
+    'Access-Control-Allow-Credentials': 'true'
+}
+
+def create_response(status_code: int, body: str) -> Dict[str, Any]:
+    return {
+        'statusCode': status_code,
+        'headers': CORS_HEADERS,
+        'body': body
+    }
+
+# Instrument Management Functions
+def create_instrument(instrument_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    instrument_id = str(uuid.uuid4())
+    
+    item = {
+        'instrumentId': instrument_id,
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+        'status': 'AVAILABLE',  # AVAILABLE, IN_USE, MAINTENANCE, RETIRED
+        **instrument_data
+    }
+    
+    instruments_table.put_item(Item=item)
+    return item
+
+def get_instrument(instrument_id: str) -> Dict[str, Any]:
+    response = instruments_table.get_item(Key={'instrumentId': instrument_id})
+    return response.get('Item', {})
+
+def update_instrument(instrument_id: str, instrument_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    update_expr = 'SET updatedAt = :ts'
+    expr_attrs = {':ts': timestamp}
+    expr_names = {}
+    
+    for key, value in instrument_data.items():
+        update_expr += f', #{key} = :{key}'
+        expr_attrs[f':{key}'] = value
+        expr_names[f'#{key}'] = key
+    
+    response = instruments_table.update_item(
+        Key={'instrumentId': instrument_id},
+        UpdateExpression=update_expr,
+        ExpressionAttributeValues=expr_attrs,
+        ExpressionAttributeNames=expr_names,
+        ReturnValues='ALL_NEW'
+    )
+    return response.get('Attributes', {})
+
+def delete_instrument(instrument_id: str) -> None:
+    instruments_table.delete_item(Key={'instrumentId': instrument_id})
+
+def get_instruments_by_name(name: str) -> List[Dict[str, Any]]:
+    response = instruments_table.query(
+        IndexName='NameIndex',
+        KeyConditionExpression='#name = :name',
+        ExpressionAttributeNames={'#name': 'name'},
+        ExpressionAttributeValues={':name': name}
+    )
+    return response.get('Items', [])
+
+# Project Management Functions
+def create_project(user_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    project_id = str(uuid.uuid4())
+    
+    # Validate required instruments
+    required_instruments = project_data.get('requiredInstruments', [])
+    for instrument_id in required_instruments:
+        instrument = get_instrument(instrument_id)
+        if not instrument:
+            raise ValueError(f"Instrument {instrument_id} not found")
+    
+    item = {
+        'projectId': project_id,
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+        'createdBy': user_id,
+        'status': 'OPEN',
+        'requiredInstruments': required_instruments,
+        **project_data
+    }
+    
+    projects_table.put_item(Item=item)
+    return item
+
+def get_project(project_id: str) -> Dict[str, Any]:
+    response = projects_table.get_item(Key={'projectId': project_id})
+    return response.get('Item', {})
+
+def update_project(project_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    update_expr = 'SET updatedAt = :ts'
+    expr_attrs = {':ts': timestamp}
+    expr_names = {}
+    
+    for key, value in project_data.items():
+        update_expr += f', #{key} = :{key}'
+        expr_attrs[f':{key}'] = value
+        expr_names[f'#{key}'] = key
+    
+    response = projects_table.update_item(
+        Key={'projectId': project_id},
+        UpdateExpression=update_expr,
+        ExpressionAttributeValues=expr_attrs,
+        ExpressionAttributeNames=expr_names,
+        ReturnValues='ALL_NEW'
+    )
+    return response.get('Attributes', {})
+
+def delete_project(project_id: str) -> None:
+    # First, delete all tasks and activities associated with the project
+    tasks = tasks_table.query(
+        KeyConditionExpression='projectId = :pid',
+        ExpressionAttributeValues={':pid': project_id}
+    )
+    
+    for task in tasks.get('Items', []):
+        task_id = task['taskId']
+        # Delete activities for this task
+        activities = activities_table.query(
+            KeyConditionExpression='taskId = :tid',
+            ExpressionAttributeValues={':tid': task_id}
+        )
+        for activity in activities.get('Items', []):
+            activities_table.delete_item(
+                Key={
+                    'activityId': activity['activityId'],
+                    'taskId': task_id
+                }
+            )
+        # Delete the task
+        tasks_table.delete_item(
+            Key={
+                'taskId': task_id,
+                'projectId': project_id
+            }
+        )
+    
+    # Finally, delete the project
+    projects_table.delete_item(Key={'projectId': project_id})
+
+# Task Management Functions
+def create_task(project_id: str, task_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    task_id = str(uuid.uuid4())
+    
+    # Validate required instruments
+    required_instruments = task_data.get('requiredInstruments', [])
+    for instrument_id in required_instruments:
+        instrument = get_instrument(instrument_id)
+        if not instrument:
+            raise ValueError(f"Instrument {instrument_id} not found")
+    
+    item = {
+        'taskId': task_id,
+        'projectId': project_id,
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+        'status': 'OPEN',
+        'requiredInstruments': required_instruments,
+        **task_data
+    }
+    
+    tasks_table.put_item(Item=item)
+    return item
+
+def get_task(task_id: str, project_id: str) -> Dict[str, Any]:
+    response = tasks_table.get_item(
+        Key={
+            'taskId': task_id,
+            'projectId': project_id
+        }
+    )
+    return response.get('Item', {})
+
+def update_task(task_id: str, project_id: str, task_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    update_expr = 'SET updatedAt = :ts'
+    expr_attrs = {':ts': timestamp}
+    expr_names = {}
+    
+    for key, value in task_data.items():
+        update_expr += f', #{key} = :{key}'
+        expr_attrs[f':{key}'] = value
+        expr_names[f'#{key}'] = key
+    
+    response = tasks_table.update_item(
+        Key={
+            'taskId': task_id,
+            'projectId': project_id
+        },
+        UpdateExpression=update_expr,
+        ExpressionAttributeValues=expr_attrs,
+        ExpressionAttributeNames=expr_names,
+        ReturnValues='ALL_NEW'
+    )
+    return response.get('Attributes', {})
+
+def delete_task(task_id: str, project_id: str) -> None:
+    # First, delete all activities associated with the task
+    activities = activities_table.query(
+        KeyConditionExpression='taskId = :tid',
+        ExpressionAttributeValues={':tid': task_id}
+    )
+    for activity in activities.get('Items', []):
+        activities_table.delete_item(
+            Key={
+                'activityId': activity['activityId'],
+                'taskId': task_id
+            }
+        )
+    
+    # Then delete the task
+    tasks_table.delete_item(
+        Key={
+            'taskId': task_id,
+            'projectId': project_id
+        }
+    )
+
+# Activity Management Functions
+def create_activity(task_id: str, project_id: str, activity_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    activity_id = str(uuid.uuid4())
+    
+    # Validate used instruments
+    used_instruments = activity_data.get('usedInstruments', [])
+    for instrument_id in used_instruments:
+        instrument = get_instrument(instrument_id)
+        if not instrument:
+            raise ValueError(f"Instrument {instrument_id} not found")
+        if instrument['status'] != 'AVAILABLE':
+            raise ValueError(f"Instrument {instrument_id} is not available")
+    
+    item = {
+        'activityId': activity_id,
+        'taskId': task_id,
+        'projectId': project_id,
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+        'status': 'IN_PROGRESS',
+        'usedInstruments': used_instruments,
+        **activity_data
+    }
+    
+    # Update instrument status to IN_USE
+    for instrument_id in used_instruments:
+        update_instrument(instrument_id, {'status': 'IN_USE'})
+    
+    activities_table.put_item(Item=item)
+    return item
+
+def get_activity(activity_id: str, task_id: str) -> Dict[str, Any]:
+    response = activities_table.get_item(
+        Key={
+            'activityId': activity_id,
+            'taskId': task_id
+        }
+    )
+    return response.get('Item', {})
+
+def update_activity(activity_id: str, task_id: str, activity_data: Dict[str, Any]) -> Dict[str, Any]:
+    timestamp = datetime.utcnow().isoformat()
+    update_expr = 'SET updatedAt = :ts'
+    expr_attrs = {':ts': timestamp}
+    expr_names = {}
+    
+    # Handle instrument status updates
+    if 'status' in activity_data and activity_data['status'] in ['COMPLETED', 'FAILED']:
+        # Get current activity to check used instruments
+        current_activity = get_activity(activity_id, task_id)
+        if current_activity:
+            # Release all instruments
+            for instrument_id in current_activity.get('usedInstruments', []):
+                update_instrument(instrument_id, {'status': 'AVAILABLE'})
+    
+    for key, value in activity_data.items():
+        update_expr += f', #{key} = :{key}'
+        expr_attrs[f':{key}'] = value
+        expr_names[f'#{key}'] = key
+    
+    response = activities_table.update_item(
+        Key={
+            'activityId': activity_id,
+            'taskId': task_id
+        },
+        UpdateExpression=update_expr,
+        ExpressionAttributeValues=expr_attrs,
+        ExpressionAttributeNames=expr_names,
+        ReturnValues='ALL_NEW'
+    )
+    return response.get('Attributes', {})
+
+def delete_activity(activity_id: str, task_id: str) -> None:
+    activities_table.delete_item(
+        Key={
+            'activityId': activity_id,
+            'taskId': task_id
+        }
+    )
+
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    try:
+        # Handle OPTIONS request for CORS preflight
+        if event['httpMethod'] == 'OPTIONS':
+            return create_response(200, '')
+
+        # Get user ID from Cognito authorizer
+        user_id = event['requestContext']['authorizer']['claims']['sub']
+        
+        # Get HTTP method and path
+        http_method = event['httpMethod']
+        path = event['path']
+        path_parts = path.strip('/').split('/')
+        
+        # Parse request body if present
+        body = json.loads(event['body']) if event.get('body') else {}
+        
+        # Route the request based on the path
+        if path_parts[0] == 'instruments':
+            if len(path_parts) == 1:  # /instruments
+                if http_method == 'GET':
+                    # List all instruments
+                    response = instruments_table.scan()
+                    return create_response(200, json.dumps(response.get('Items', [])))
+                elif http_method == 'POST':
+                    # Create new instrument
+                    instrument = create_instrument(body)
+                    return create_response(201, json.dumps(instrument))
+            
+            elif len(path_parts) == 2:  # /instruments/{instrumentId}
+                instrument_id = path_parts[1]
+                if http_method == 'GET':
+                    instrument = get_instrument(instrument_id)
+                    return create_response(200, json.dumps(instrument))
+                elif http_method == 'PUT':
+                    instrument = update_instrument(instrument_id, body)
+                    return create_response(200, json.dumps(instrument))
+                elif http_method == 'DELETE':
+                    delete_instrument(instrument_id)
+                    return create_response(204, '')
+            
+            elif len(path_parts) == 3 and path_parts[1] == 'search':  # /instruments/search/{name}
+                name = path_parts[2]
+                instruments = get_instruments_by_name(name)
+                return create_response(200, json.dumps(instruments))
+        
+        elif path_parts[0] == 'projects':
+            if len(path_parts) == 1:  # /projects
+                if http_method == 'GET':
+                    # List all projects
+                    response = projects_table.scan()
+                    return create_response(200, json.dumps(response.get('Items', [])))
+                elif http_method == 'POST':
+                    # Create new project
+                    project = create_project(user_id, body)
+                    return create_response(201, json.dumps(project))
+            
+            elif len(path_parts) == 2:  # /projects/{projectId}
+                project_id = path_parts[1]
+                if http_method == 'GET':
+                    project = get_project(project_id)
+                    return create_response(200, json.dumps(project))
+                elif http_method == 'PUT':
+                    project = update_project(project_id, body)
+                    return create_response(200, json.dumps(project))
+                elif http_method == 'DELETE':
+                    delete_project(project_id)
+                    return create_response(204, '')
+            
+            elif len(path_parts) == 3 and path_parts[2] == 'tasks':  # /projects/{projectId}/tasks
+                project_id = path_parts[1]
+                if http_method == 'GET':
+                    # List all tasks for project
+                    response = tasks_table.query(
+                        KeyConditionExpression='projectId = :pid',
+                        ExpressionAttributeValues={':pid': project_id}
+                    )
+                    return create_response(200, json.dumps(response.get('Items', [])))
+                elif http_method == 'POST':
+                    # Create new task
+                    task = create_task(project_id, body)
+                    return create_response(201, json.dumps(task))
+            
+            elif len(path_parts) == 4 and path_parts[2] == 'tasks':  # /projects/{projectId}/tasks/{taskId}
+                project_id = path_parts[1]
+                task_id = path_parts[3]
+                if http_method == 'GET':
+                    task = get_task(task_id, project_id)
+                    return create_response(200, json.dumps(task))
+                elif http_method == 'PUT':
+                    task = update_task(task_id, project_id, body)
+                    return create_response(200, json.dumps(task))
+                elif http_method == 'DELETE':
+                    delete_task(task_id, project_id)
+                    return create_response(204, '')
+            
+            elif len(path_parts) == 5 and path_parts[2] == 'tasks' and path_parts[4] == 'activities':  # /projects/{projectId}/tasks/{taskId}/activities
+                project_id = path_parts[1]
+                task_id = path_parts[3]
+                if http_method == 'GET':
+                    # List all activities for task
+                    response = activities_table.query(
+                        KeyConditionExpression='taskId = :tid',
+                        ExpressionAttributeValues={':tid': task_id}
+                    )
+                    return create_response(200, json.dumps(response.get('Items', [])))
+                elif http_method == 'POST':
+                    # Create new activity
+                    activity = create_activity(task_id, project_id, body)
+                    return create_response(201, json.dumps(activity))
+            
+            elif len(path_parts) == 6 and path_parts[2] == 'tasks' and path_parts[4] == 'activities':  # /projects/{projectId}/tasks/{taskId}/activities/{activityId}
+                project_id = path_parts[1]
+                task_id = path_parts[3]
+                activity_id = path_parts[5]
+                if http_method == 'GET':
+                    activity = get_activity(activity_id, task_id)
+                    return create_response(200, json.dumps(activity))
+                elif http_method == 'PUT':
+                    activity = update_activity(activity_id, task_id, body)
+                    return create_response(200, json.dumps(activity))
+                elif http_method == 'DELETE':
+                    delete_activity(activity_id, task_id)
+                    return create_response(204, '')
+        
+        return create_response(400, json.dumps({'error': 'Invalid path'}))
+            
+    except Exception as e:
+        return create_response(500, json.dumps({'error': str(e)})) 
