@@ -391,8 +391,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             elif len(path_parts) == 3 and path_parts[2] == 'tasks':  # /projects/{projectId}/tasks
                 project_id = path_parts[1]
                 if http_method == 'GET':
-                    # List all tasks for project
+                    # List all tasks for project using GSI
                     response = tasks_table.query(
+                        IndexName='ProjectIdIndex',
                         KeyConditionExpression='projectId = :pid',
                         ExpressionAttributeValues={':pid': project_id}
                     )
