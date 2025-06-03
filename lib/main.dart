@@ -9,6 +9,7 @@ import 'routes/app_routes.dart';
 import 'services/cognito_service.dart';
 import 'services/user_metadata_service.dart';
 import 'services/api_service.dart';
+import 'services/inventory_service.dart';
 
 Future<void> _configureAmplify() async {
   try {
@@ -43,6 +44,7 @@ class _ProTrackAppState extends State<ProTrackApp> {
   late CognitoService _cognitoService;
   late UserMetadataService _userMetadataService;
   late ApiService _apiService;
+  late InventoryService _inventoryService;
   String? _initialRoute;
 
   @override
@@ -69,6 +71,8 @@ class _ProTrackAppState extends State<ProTrackApp> {
       baseUrl: 'https://acnpe7a49i.execute-api.us-east-1.amazonaws.com/prod',
       authToken: idToken,
     );
+
+    _inventoryService = InventoryService(_apiService);
 
     _cognitoService.setUserMetadataService(_userMetadataService);
     final prefs = await SharedPreferences.getInstance();
@@ -98,6 +102,7 @@ class _ProTrackAppState extends State<ProTrackApp> {
         ChangeNotifierProvider.value(value: _cognitoService),
         Provider.value(value: _userMetadataService),
         Provider.value(value: _apiService),
+        Provider.value(value: _inventoryService),
       ],
       child: MaterialApp(
         title: 'ProTrack',

@@ -9,7 +9,7 @@ import '../services/activity_service.dart';
 import '../services/api_service.dart';
 import '../services/cognito_service.dart';
 import '../routes/app_routes.dart';
-import 'inventory_screen.dart';
+import 'inventory/labs_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const InventoryScreen()),
+                MaterialPageRoute(builder: (context) => const LabsScreen()),
               );
             },
           ),
