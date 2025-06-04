@@ -206,6 +206,18 @@ class _HomeScreenState extends State<HomeScreen> {
               // TODO: Navigate to settings page
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Sign Out'),
+            onTap: () async {
+              Navigator.pop(context);
+              final cognitoService = Provider.of<CognitoService>(context, listen: false);
+              await cognitoService.signOut();
+              if (mounted) {
+                Navigator.pushReplacementNamed(context, AppRoutes.login);
+              }
+            },
+          ),
         ],
       ),
     );
