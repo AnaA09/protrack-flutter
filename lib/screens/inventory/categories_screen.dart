@@ -223,8 +223,28 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       ],
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios,
-                      color: Colors.grey[400], size: 16),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _editCategory(category),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.delete,
+                            size: 20, color: Colors.red),
+                        onPressed: () => _deleteCategory(category),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_ios,
+                          color: Colors.grey[400], size: 16),
+                    ],
+                  ),
                 ],
               ),
               if (category.description.isNotEmpty) ...[
@@ -241,6 +261,49 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         ),
       ),
     );
+  }
+
+  // Category operations
+  Future<void> _editCategory(Category category) async {
+    // TODO: Navigate to edit category screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Edit category: ${category.name}')),
+    );
+  }
+
+  Future<void> _deleteCategory(Category category) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Category'),
+        content: Text('Are you sure you want to delete "${category.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final inventoryService = context.read<InventoryService>();
+        await inventoryService.deleteCategory(category.categoryId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Category "${category.name}" deleted')),
+        );
+        _loadCategories(); // Refresh the list
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting category: $e')),
+        );
+      }
+    }
   }
 }
 

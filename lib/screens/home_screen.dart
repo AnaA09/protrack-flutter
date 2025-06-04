@@ -269,11 +269,39 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  project.name,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        project.name,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                        overflow: TextOverflow.ellipsis,
                       ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _editProject(project),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.delete,
+                              size: 20, color: Colors.red),
+                          onPressed: () => _deleteProject(project),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -330,11 +358,39 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  task.name,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        task.name,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                        overflow: TextOverflow.ellipsis,
                       ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _editTask(task),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.delete,
+                              size: 20, color: Colors.red),
+                          onPressed: () => _deleteTask(task),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -412,11 +468,39 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  activity.name,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        activity.name,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                        overflow: TextOverflow.ellipsis,
                       ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20),
+                          onPressed: () => _editActivity(activity),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.delete,
+                              size: 20, color: Colors.red),
+                          onPressed: () => _deleteActivity(activity),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -465,6 +549,139 @@ class _HomeScreenState extends State<HomeScreen> {
         return Colors.red;
       default:
         return Colors.grey;
+    }
+  }
+
+  // Project operations
+  Future<void> _editProject(Project project) async {
+    // TODO: Navigate to edit project screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Edit project: ${project.name}')),
+    );
+  }
+
+  Future<void> _deleteProject(Project project) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Project'),
+        content: Text('Are you sure you want to delete "${project.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final apiService = Provider.of<ApiService>(context, listen: false);
+        final projectService = ProjectService(apiService);
+        await projectService.deleteProject(project.projectId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Project "${project.name}" deleted')),
+        );
+        _loadData(); // Refresh the data
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting project: $e')),
+        );
+      }
+    }
+  }
+
+  // Task operations
+  Future<void> _editTask(Task task) async {
+    // TODO: Navigate to edit task screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Edit task: ${task.name}')),
+    );
+  }
+
+  Future<void> _deleteTask(Task task) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Task'),
+        content: Text('Are you sure you want to delete "${task.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final apiService = Provider.of<ApiService>(context, listen: false);
+        final taskService = TaskService(apiService);
+        await taskService.deleteTask(task.projectId, task.taskId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Task "${task.name}" deleted')),
+        );
+        _loadData(); // Refresh the data
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting task: $e')),
+        );
+      }
+    }
+  }
+
+  // Activity operations
+  Future<void> _editActivity(Activity activity) async {
+    // TODO: Navigate to edit activity screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Edit activity: ${activity.name}')),
+    );
+  }
+
+  Future<void> _deleteActivity(Activity activity) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Activity'),
+        content: Text('Are you sure you want to delete "${activity.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final apiService = Provider.of<ApiService>(context, listen: false);
+        final activityService = ActivityService(apiService);
+        await activityService.deleteActivity(
+            activity.projectId, activity.taskId, activity.activityId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Activity "${activity.name}" deleted')),
+        );
+        _loadData(); // Refresh the data
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting activity: $e')),
+        );
+      }
     }
   }
 }
