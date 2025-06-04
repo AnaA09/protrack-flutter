@@ -4,6 +4,18 @@ import os
 from datetime import datetime
 from typing import Dict, Any, List
 import uuid
+from decimal import Decimal
+
+# Custom JSON encoder to handle DynamoDB Decimal objects
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            # Convert decimal to int if it's a whole number, otherwise to float
+            if obj % 1 == 0:
+                return int(obj)
+            else:
+                return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 dynamodb = boto3.resource('dynamodb')
 projects_table = dynamodb.Table(os.environ['PROJECTS_TABLE'])
@@ -19,11 +31,17 @@ CORS_HEADERS = {
     'Access-Control-Allow-Credentials': 'true'
 }
 
-def create_response(status_code: int, body: str) -> Dict[str, Any]:
+def create_response(status_code: int, body: Any) -> Dict[str, Any]:
+    # Use custom encoder for JSON serialization
+    if isinstance(body, str):
+        json_body = body
+    else:
+        json_body = json.dumps(body, cls=DecimalEncoder)
+    
     return {
         'statusCode': status_code,
         'headers': CORS_HEADERS,
-        'body': body
+        'body': json_body
     }
 
 # Instrument Management Functions
@@ -136,8 +154,9 @@ def delete_project(project_id: str) -> None:
     
     for task in tasks.get('Items', []):
         task_id = task['taskId']
-        # Delete activities for this task
+        # Delete activities for this task using TaskIdIndex GSI
         activities = activities_table.query(
+            IndexName='TaskIdIndex',
             KeyConditionExpression='taskId = :tid',
             ExpressionAttributeValues={':tid': task_id}
         )
@@ -217,8 +236,9 @@ def update_task(task_id: str, project_id: str, task_data: Dict[str, Any]) -> Dic
     return response.get('Attributes', {})
 
 def delete_task(task_id: str, project_id: str) -> None:
-    # First, delete all activities associated with the task
+    # First, delete all activities associated with the task using TaskIdIndex GSI
     activities = activities_table.query(
+        IndexName='TaskIdIndex',
         KeyConditionExpression='taskId = :tid',
         ExpressionAttributeValues={':tid': task_id}
     )
@@ -342,20 +362,20 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if http_method == 'GET':
                     # List all instruments
                     response = instruments_table.scan()
-                    return create_response(200, json.dumps(response.get('Items', [])))
+                    return create_response(200, response.get('Items', []))
                 elif http_method == 'POST':
                     # Create new instrument
                     instrument = create_instrument(body)
-                    return create_response(201, json.dumps(instrument))
+                    return create_response(201, instrument)
             
             elif len(path_parts) == 2:  # /instruments/{instrumentId}
                 instrument_id = path_parts[1]
                 if http_method == 'GET':
                     instrument = get_instrument(instrument_id)
-                    return create_response(200, json.dumps(instrument))
+                    return create_response(200, instrument)
                 elif http_method == 'PUT':
                     instrument = update_instrument(instrument_id, body)
-                    return create_response(200, json.dumps(instrument))
+                    return create_response(200, instrument)
                 elif http_method == 'DELETE':
                     delete_instrument(instrument_id)
                     return create_response(204, '')
@@ -363,27 +383,27 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             elif len(path_parts) == 3 and path_parts[1] == 'search':  # /instruments/search/{name}
                 name = path_parts[2]
                 instruments = get_instruments_by_name(name)
-                return create_response(200, json.dumps(instruments))
+                return create_response(200, instruments)
         
         elif path_parts[0] == 'projects':
             if len(path_parts) == 1:  # /projects
                 if http_method == 'GET':
                     # List all projects
                     response = projects_table.scan()
-                    return create_response(200, json.dumps(response.get('Items', [])))
+                    return create_response(200, response.get('Items', []))
                 elif http_method == 'POST':
                     # Create new project
                     project = create_project(user_id, body)
-                    return create_response(201, json.dumps(project))
+                    return create_response(201, project)
             
             elif len(path_parts) == 2:  # /projects/{projectId}
                 project_id = path_parts[1]
                 if http_method == 'GET':
                     project = get_project(project_id)
-                    return create_response(200, json.dumps(project))
+                    return create_response(200, project)
                 elif http_method == 'PUT':
                     project = update_project(project_id, body)
-                    return create_response(200, json.dumps(project))
+                    return create_response(200, project)
                 elif http_method == 'DELETE':
                     delete_project(project_id)
                     return create_response(204, '')
@@ -397,21 +417,21 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         KeyConditionExpression='projectId = :pid',
                         ExpressionAttributeValues={':pid': project_id}
                     )
-                    return create_response(200, json.dumps(response.get('Items', [])))
+                    return create_response(200, response.get('Items', []))
                 elif http_method == 'POST':
                     # Create new task
                     task = create_task(project_id, body)
-                    return create_response(201, json.dumps(task))
+                    return create_response(201, task)
             
             elif len(path_parts) == 4 and path_parts[2] == 'tasks':  # /projects/{projectId}/tasks/{taskId}
                 project_id = path_parts[1]
                 task_id = path_parts[3]
                 if http_method == 'GET':
                     task = get_task(task_id, project_id)
-                    return create_response(200, json.dumps(task))
+                    return create_response(200, task)
                 elif http_method == 'PUT':
                     task = update_task(task_id, project_id, body)
-                    return create_response(200, json.dumps(task))
+                    return create_response(200, task)
                 elif http_method == 'DELETE':
                     delete_task(task_id, project_id)
                     return create_response(204, '')
@@ -420,16 +440,17 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 project_id = path_parts[1]
                 task_id = path_parts[3]
                 if http_method == 'GET':
-                    # List all activities for task
+                    # List all activities for task using TaskIdIndex GSI
                     response = activities_table.query(
+                        IndexName='TaskIdIndex',
                         KeyConditionExpression='taskId = :tid',
                         ExpressionAttributeValues={':tid': task_id}
                     )
-                    return create_response(200, json.dumps(response.get('Items', [])))
+                    return create_response(200, response.get('Items', []))
                 elif http_method == 'POST':
                     # Create new activity
                     activity = create_activity(task_id, project_id, body)
-                    return create_response(201, json.dumps(activity))
+                    return create_response(201, activity)
             
             elif len(path_parts) == 6 and path_parts[2] == 'tasks' and path_parts[4] == 'activities':  # /projects/{projectId}/tasks/{taskId}/activities/{activityId}
                 project_id = path_parts[1]
@@ -437,15 +458,15 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 activity_id = path_parts[5]
                 if http_method == 'GET':
                     activity = get_activity(activity_id, task_id)
-                    return create_response(200, json.dumps(activity))
+                    return create_response(200, activity)
                 elif http_method == 'PUT':
                     activity = update_activity(activity_id, task_id, body)
-                    return create_response(200, json.dumps(activity))
+                    return create_response(200, activity)
                 elif http_method == 'DELETE':
                     delete_activity(activity_id, task_id)
                     return create_response(204, '')
         
-        return create_response(400, json.dumps({'error': 'Invalid path'}))
+        return create_response(400, {'error': 'Invalid path'})
             
     except Exception as e:
-        return create_response(500, json.dumps({'error': str(e)})) 
+        return create_response(500, {'error': str(e)}) 
