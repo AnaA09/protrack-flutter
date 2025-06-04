@@ -32,3 +32,4 @@ flutter:
   assets:
     - assets/images/login_bg.png
     - assets/amplifyconfiguration.json
+    - assets/images/protrack_logo.png

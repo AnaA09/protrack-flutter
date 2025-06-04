@@ -17,19 +17,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingItem(
       title: 'Track Your Progress',
       description:
-          'Monitor your professional growth and achievements in one place',
-      icon: Icons.trending_up,
-    ),
-    OnboardingItem(
-      title: 'Set Goals',
-      description: 'Define and track your career objectives with ease',
-      icon: Icons.flag,
-    ),
-    OnboardingItem(
-      title: 'Stay Organized',
-      description:
-          'Keep all your professional documents and achievements organized',
-      icon: Icons.folder,
+          'Comprehensive lab tracking solution.',
+      icon: null, // No icon, will use image
     ),
   ];
 
@@ -122,12 +111,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class OnboardingItem {
   final String title;
   final String description;
-  final IconData icon;
+  final IconData? icon;
 
   OnboardingItem({
     required this.title,
     required this.description,
-    required this.icon,
+    this.icon,
   });
 }
 
@@ -146,10 +135,10 @@ class OnboardingPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            item.icon,
-            size: 120,
-            color: Theme.of(context).primaryColor,
+          // Use logo image instead of icon
+          Image.asset(
+            'assets/images/protrack_logo.png',
+            height: 120,
           ),
           const SizedBox(height: 32),
           Text(
