@@ -5,10 +5,22 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List
 import uuid
 import logging
+from decimal import Decimal
 
 # Set up logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+# Custom JSON encoder to handle DynamoDB Decimal objects
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            # Convert decimal to int if it's a whole number, otherwise to float
+            if obj % 1 == 0:
+                return int(obj)
+            else:
+                return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 dynamodb = boto3.resource('dynamodb')
 
@@ -24,13 +36,19 @@ CORS_HEADERS = {
     'Access-Control-Allow-Credentials': 'true'
 }
 
-def create_response(status_code: int, body: str) -> Dict[str, Any]:
+def create_response(status_code: int, body: Any) -> Dict[str, Any]:
+    # Use custom encoder for JSON serialization
+    if isinstance(body, str):
+        json_body = body
+    else:
+        json_body = json.dumps(body, cls=DecimalEncoder)
+    
     response = {
         'statusCode': status_code,
         'headers': CORS_HEADERS,
-        'body': body
+        'body': json_body
     }
-    logger.info(f"Creating response: status={status_code}, body_length={len(body)}")
+    logger.info(f"Creating response: status={status_code}, body_length={len(json_body)}")
     return response
 
 # Lab Management Functions
@@ -307,12 +325,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info("Getting all labs")
                     labs = get_labs()
                     logger.info(f"Returning {len(labs)} labs")
-                    return create_response(200, json.dumps(labs))
+                    return create_response(200, labs)
                 elif http_method == 'POST':
                     logger.info("Creating new lab")
                     lab = create_lab(body)
                     logger.info(f"Created lab: {lab.get('name')}")
-                    return create_response(201, json.dumps(lab))
+                    return create_response(201, lab)
             
             elif len(path_parts) == 3 and path_parts[1] == 'labs':  # /inventory/labs/{labId}
                 lab_id = path_parts[2] 
@@ -321,7 +339,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info(f"Getting lab: {lab_id}")
                     lab = get_lab(lab_id)
                     logger.info(f"Found lab: {lab.get('name', 'Not found')}")
-                    return create_response(200, json.dumps(lab))
+                    return create_response(200, lab)
             
             # Categories endpoints
             elif len(path_parts) == 4 and path_parts[1] == 'labs' and path_parts[3] == 'categories':  # /inventory/labs/{labId}/categories
@@ -331,13 +349,13 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info(f"Getting categories for lab: {lab_id}")
                     categories = get_categories_by_lab(lab_id)
                     logger.info(f"Found {len(categories)} categories")
-                    return create_response(200, json.dumps(categories))
+                    return create_response(200, categories)
                 elif http_method == 'POST':
                     logger.info(f"Creating category for lab: {lab_id}")
                     body['labId'] = lab_id
                     category = create_category(lab_id, body)
                     logger.info(f"Created category: {category.get('name')}")
-                    return create_response(201, json.dumps(category))
+                    return create_response(201, category)
             
             # Entries endpoints
             elif len(path_parts) == 4 and path_parts[1] == 'categories' and path_parts[3] == 'entries':  # /inventory/categories/{categoryId}/entries
@@ -347,12 +365,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info(f"Getting entries for category: {category_id}")
                     entries = get_entries_by_category(category_id)
                     logger.info(f"Found {len(entries)} entries")
-                    return create_response(200, json.dumps(entries))
+                    return create_response(200, entries)
                 elif http_method == 'POST':
                     logger.info(f"Creating entry for category: {category_id}")
                     entry = create_entry(category_id, body)
                     logger.info(f"Created entry: {entry.get('name')}")
-                    return create_response(201, json.dumps(entry))
+                    return create_response(201, entry)
             
             elif len(path_parts) == 3 and path_parts[1] == 'entries':  # /inventory/entries/{entryId}
                 entry_id = path_parts[2]
@@ -361,12 +379,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info(f"Getting entry: {entry_id}")
                     entry = get_entry(entry_id)
                     logger.info(f"Found entry: {entry.get('name', 'Not found')}")
-                    return create_response(200, json.dumps(entry))
+                    return create_response(200, entry)
                 elif http_method == 'PUT':
                     logger.info(f"Updating entry: {entry_id}")
                     entry = update_entry(entry_id, body)
                     logger.info(f"Updated entry: {entry.get('name')}")
-                    return create_response(200, json.dumps(entry))
+                    return create_response(200, entry)
             
             # Booking endpoints
             elif len(path_parts) == 4 and path_parts[1] == 'entries' and path_parts[3] == 'book':  # /inventory/entries/{entryId}/book
@@ -377,7 +395,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     body['userId'] = user_id
                     booking = create_booking(entry_id, body)
                     logger.info(f"Created booking: {booking.get('bookingId')}")
-                    return create_response(201, json.dumps(booking))
+                    return create_response(201, booking)
             
             elif len(path_parts) == 5 and path_parts[1] == 'entries' and path_parts[3] == 'availability':  # /inventory/entries/{entryId}/availability/{start_date}/{end_date}
                 entry_id = path_parts[2]
@@ -388,7 +406,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if http_method == 'GET' and end_date:
                     available_dates = get_available_dates(entry_id, start_date, end_date)
                     logger.info(f"Found {len(available_dates)} available dates")
-                    return create_response(200, json.dumps({'availableDates': available_dates}))
+                    return create_response(200, {'availableDates': available_dates})
             
             elif len(path_parts) == 4 and path_parts[1] == 'entries' and path_parts[3] == 'bookings':  # /inventory/entries/{entryId}/bookings
                 entry_id = path_parts[2]
@@ -397,10 +415,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info(f"Getting bookings for entry: {entry_id}")
                     bookings = get_bookings_by_entry(entry_id)
                     logger.info(f"Found {len(bookings)} bookings")
-                    return create_response(200, json.dumps(bookings))
+                    return create_response(200, bookings)
         
         logger.warning(f"Invalid path requested: {path}")
-        return create_response(400, json.dumps({'error': 'Invalid path'}))
+        return create_response(400, {'error': 'Invalid path'})
             
     except Exception as e:
         logger.error(f"=== Lambda function error ===")
@@ -409,4 +427,4 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Event that caused error: {json.dumps(event)}")
         import traceback
         logger.error(f"Full traceback: {traceback.format_exc()}")
-        return create_response(500, json.dumps({'error': str(e), 'type': type(e).__name__})) 
+        return create_response(500, {'error': str(e), 'type': type(e).__name__}) 

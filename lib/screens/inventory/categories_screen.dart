@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/lab.dart';
 import '../../models/category.dart';
 import '../../services/inventory_service.dart';
+import 'entries_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final Lab lab;
@@ -169,8 +170,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       child: InkWell(
         onTap: () {
           // Navigate to entries screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Navigate to ${category.name} entries')),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EntriesScreen(category: category),
+            ),
           );
         },
         borderRadius: BorderRadius.circular(12),
