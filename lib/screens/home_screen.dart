@@ -13,6 +13,9 @@ import 'inventory/labs_screen.dart';
 import 'projects/edit_project_dialog.dart';
 import 'tasks/edit_task_dialog.dart';
 import 'activities/edit_activity_dialog.dart';
+import 'projects/projects_page.dart';
+import 'tasks/tasks_page.dart';
+import 'activities/activities_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -170,7 +173,10 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Projects'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Navigate to projects page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProjectsPage()),
+              );
             },
           ),
           ListTile(
@@ -178,7 +184,10 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Tasks'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Navigate to tasks page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const TasksPage()),
+              );
             },
           ),
           ListTile(
@@ -186,7 +195,10 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Activities'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Navigate to activities page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ActivitiesPage()),
+              );
             },
           ),
           ListTile(
