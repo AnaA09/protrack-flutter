@@ -1,5 +1,6 @@
 import '../models/task.dart';
 import 'api_service.dart';
+import 'package:flutter/foundation.dart';
 
 class TaskService {
   final ApiService _apiService;
@@ -8,9 +9,26 @@ class TaskService {
 
   Future<List<Task>> getProjectTasks(String projectId) async {
     final response = await _apiService.get('/projects/$projectId/tasks');
-    return (response['Items'] as List)
-        .map((item) => Task.fromJson(item))
-        .toList();
+    debugPrint('Raw tasks API response: $response');
+    debugPrint('Response type: ${response.runtimeType}');
+
+    // Handle the response as a direct list since Lambda returns tasks directly
+    if (response is List) {
+      debugPrint('Response is List with ${response.length} items');
+      final tasks = response.map((item) => Task.fromJson(item)).toList();
+      debugPrint(
+          'Parsed ${tasks.length} tasks: ${tasks.map((t) => t.name).join(', ')}');
+      return tasks;
+    } else if (response is Map && response.containsKey('Items')) {
+      // Fallback for responses that still use the Items wrapper
+      debugPrint('Response is Map with Items key');
+      return (response['Items'] as List)
+          .map((item) => Task.fromJson(item))
+          .toList();
+    } else {
+      debugPrint('Response format not recognized, returning empty list');
+      return [];
+    }
   }
 
   Future<Task> getTask(String projectId, String taskId) async {

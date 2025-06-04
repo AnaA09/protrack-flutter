@@ -285,14 +285,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Status: ${project.status}',
-                      style: TextStyle(
-                        color: _getStatusColor(project.status),
+                    Flexible(
+                      child: Text(
+                        'Status: ${project.status}',
+                        style: TextStyle(
+                          color: _getStatusColor(project.status),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(
-                      'Instruments: ${project.requiredInstruments.length}',
+                    Flexible(
+                      child: Text(
+                        'Instruments: ${project.requiredInstruments.length}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -340,22 +346,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Status: ${task.status}',
-                      style: TextStyle(
-                        color: _getStatusColor(task.status),
+                    Flexible(
+                      child: Text(
+                        'Status: ${task.status}',
+                        style: TextStyle(
+                          color: _getStatusColor(task.status),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(
-                      'Project: ${_projects.firstWhere((p) => p.projectId == task.projectId, orElse: () => Project(
-                            projectId: '',
-                            name: 'Unknown',
-                            createdAt: DateTime.now().toIso8601String(),
-                            updatedAt: DateTime.now().toIso8601String(),
-                            createdBy: '',
-                            status: 'UNKNOWN',
-                            requiredInstruments: [],
-                          )).name}',
+                    Flexible(
+                      child: Text(
+                        'Project: ${_projects.firstWhere((p) => p.projectId == task.projectId, orElse: () => Project(
+                              projectId: '',
+                              name: 'Unknown',
+                              createdAt: DateTime.now().toIso8601String(),
+                              updatedAt: DateTime.now().toIso8601String(),
+                              createdBy: '',
+                              status: 'UNKNOWN',
+                              requiredInstruments: [],
+                            )).name}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -416,14 +428,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Status: ${activity.status}',
-                      style: TextStyle(
-                        color: _getStatusColor(activity.status),
+                    Flexible(
+                      child: Text(
+                        'Status: ${activity.status}',
+                        style: TextStyle(
+                          color: _getStatusColor(activity.status),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(
-                      'Task: ${task.name}',
+                    Flexible(
+                      child: Text(
+                        'Task: ${task.name}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),

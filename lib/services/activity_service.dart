@@ -10,9 +10,17 @@ class ActivityService {
       String projectId, String taskId) async {
     final response =
         await _apiService.get('/projects/$projectId/tasks/$taskId/activities');
-    return (response['Items'] as List)
-        .map((item) => Activity.fromJson(item))
-        .toList();
+    // Handle the response as a direct list since Lambda returns activities directly
+    if (response is List) {
+      return response.map((item) => Activity.fromJson(item)).toList();
+    } else if (response is Map && response.containsKey('Items')) {
+      // Fallback for responses that still use the Items wrapper
+      return (response['Items'] as List)
+          .map((item) => Activity.fromJson(item))
+          .toList();
+    } else {
+      return [];
+    }
   }
 
   Future<Activity> getActivity(
