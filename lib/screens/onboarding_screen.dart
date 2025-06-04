@@ -17,7 +17,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingItem(
       title: 'Track Your Progress',
       description:
-          'Comprehensive lab tracking solution.',
+          'comprehensive lab management solution',
       icon: null, // No icon, will use image
     ),
   ];
@@ -46,13 +46,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _items.length,
-                      (index) => buildDot(index),
-                    ),
-                  ),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
@@ -89,20 +82,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget buildDot(int index) {
-    return Container(
-      height: 8,
-      width: 8,
-      margin: const EdgeInsets.only(right: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        color: _currentPage == index
-            ? Theme.of(context).primaryColor
-            : Colors.grey.shade300,
       ),
     );
   }
