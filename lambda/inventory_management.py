@@ -101,8 +101,8 @@ def delete_lab(lab_id: str) -> None:
     for category in categories:
         entries = get_entries_by_category(category['categoryId'])
         for entry in entries:
-            instruments_table.delete_item(Key={'instrumentId': entry['instrumentId']})
-            logger.info(f"Deleted entry: {entry['name']}")
+            # Use the proper delete function that cleans up bookings
+            delete_entry_with_bookings_cleanup(entry['instrumentId'])
         
         # Delete the category
         instruments_table.delete_item(Key={'instrumentId': category['instrumentId']})
@@ -135,15 +135,13 @@ def create_category(lab_id: str, category_data: Dict[str, Any]) -> Dict[str, Any
 
 def get_categories_by_lab(lab_id: str) -> List[Dict[str, Any]]:
     response = instruments_table.scan(
-        FilterExpression='labId = :labId AND #type IN (:instruments, :chemicals, :cultures)',
+        FilterExpression='labId = :labId AND #type = :type',
         ExpressionAttributeNames={
             '#type': 'type'
         },
         ExpressionAttributeValues={
             ':labId': lab_id,
-            ':instruments': 'INSTRUMENTS',
-            ':chemicals': 'CHEMICALS',
-            ':cultures': 'CULTURES'
+            ':type': 'CATEGORY'
         }
     )
     return response.get('Items', [])
@@ -157,8 +155,8 @@ def delete_category(category_id: str) -> None:
     
     # Delete all entries in this category
     for entry in entries:
-        instruments_table.delete_item(Key={'instrumentId': entry['instrumentId']})
-        logger.info(f"Deleted entry: {entry['name']}")
+        # Use the proper delete function that cleans up bookings
+        delete_entry_with_bookings_cleanup(entry['instrumentId'])
     
     # Delete the category
     instruments_table.delete_item(Key={'instrumentId': category_id})
@@ -241,8 +239,28 @@ def update_entry(entry_id: str, entry_data: Dict[str, Any]) -> Dict[str, Any]:
     return response['Attributes']
 
 def delete_entry(entry_id: str) -> None:
-    """Delete an entry"""
+    """Delete an entry and all its associated bookings"""
     logger.info(f"Deleting entry: {entry_id}")
+    
+    # First, delete all bookings for this entry
+    bookings = get_bookings_by_entry(entry_id)
+    for booking in bookings:
+        bookings_table.delete_item(Key={'bookingId': booking['bookingId']})
+        logger.info(f"Deleted booking: {booking['bookingId']}")
+    
+    # Then delete the entry
+    instruments_table.delete_item(Key={'instrumentId': entry_id})
+    logger.info(f"Deleted entry: {entry_id}")
+
+def delete_entry_with_bookings_cleanup(entry_id: str) -> None:
+    """Helper function to delete entry with booking cleanup - used internally"""
+    # Delete all bookings for this entry
+    bookings = get_bookings_by_entry(entry_id)
+    for booking in bookings:
+        bookings_table.delete_item(Key={'bookingId': booking['bookingId']})
+        logger.info(f"Deleted booking: {booking['bookingId']}")
+    
+    # Delete the entry
     instruments_table.delete_item(Key={'instrumentId': entry_id})
     logger.info(f"Deleted entry: {entry_id}")
 
