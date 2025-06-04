@@ -232,10 +232,30 @@ class _LabsScreenState extends State<LabsScreen> {
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.grey[400],
-                    size: 16,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _editLab(lab),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.delete,
+                            size: 20, color: Colors.red),
+                        onPressed: () => _deleteLab(lab),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.grey[400],
+                        size: 16,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -299,6 +319,49 @@ class _LabsScreenState extends State<LabsScreen> {
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
       return 'Unknown';
+    }
+  }
+
+  // Lab operations
+  Future<void> _editLab(Lab lab) async {
+    // TODO: Navigate to edit lab screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Edit lab: ${lab.name}')),
+    );
+  }
+
+  Future<void> _deleteLab(Lab lab) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Lab'),
+        content: Text('Are you sure you want to delete "${lab.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final inventoryService = context.read<InventoryService>();
+        await inventoryService.deleteLab(lab.labId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lab "${lab.name}" deleted')),
+        );
+        _loadLabs(); // Refresh the list
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting lab: $e')),
+        );
+      }
     }
   }
 }

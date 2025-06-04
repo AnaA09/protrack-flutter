@@ -43,6 +43,15 @@ class InventoryService {
     }
   }
 
+  Future<void> deleteLab(String labId) async {
+    try {
+      await _apiService.delete('/inventory/labs/$labId');
+    } catch (e) {
+      debugPrint('Error deleting lab: $e');
+      rethrow;
+    }
+  }
+
   // Category Management
   Future<List<Category>> getCategoriesByLab(String labId) async {
     try {
@@ -64,6 +73,15 @@ class InventoryService {
       return Category.fromJson(response);
     } catch (e) {
       debugPrint('Error creating category: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCategory(String categoryId) async {
+    try {
+      await _apiService.delete('/inventory/categories/$categoryId');
+    } catch (e) {
+      debugPrint('Error deleting category: $e');
       rethrow;
     }
   }
@@ -111,6 +129,15 @@ class InventoryService {
       return Entry.fromJson(response);
     } catch (e) {
       debugPrint('Error updating entry: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteEntry(String entryId) async {
+    try {
+      await _apiService.delete('/inventory/entries/$entryId');
+    } catch (e) {
+      debugPrint('Error deleting entry: $e');
       rethrow;
     }
   }

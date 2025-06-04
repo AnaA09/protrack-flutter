@@ -90,6 +90,28 @@ def get_lab(lab_id: str) -> Dict[str, Any]:
     response = instruments_table.get_item(Key={'instrumentId': lab_id})
     return response.get('Item', {})
 
+def delete_lab(lab_id: str) -> None:
+    """Delete a lab and all its associated categories and entries"""
+    logger.info(f"Deleting lab: {lab_id}")
+    
+    # First, get all categories for this lab
+    categories = get_categories_by_lab(lab_id)
+    
+    # Delete all entries in all categories of this lab
+    for category in categories:
+        entries = get_entries_by_category(category['categoryId'])
+        for entry in entries:
+            instruments_table.delete_item(Key={'instrumentId': entry['instrumentId']})
+            logger.info(f"Deleted entry: {entry['name']}")
+        
+        # Delete the category
+        instruments_table.delete_item(Key={'instrumentId': category['instrumentId']})
+        logger.info(f"Deleted category: {category['name']}")
+    
+    # Finally, delete the lab
+    instruments_table.delete_item(Key={'instrumentId': lab_id})
+    logger.info(f"Deleted lab: {lab_id}")
+
 # Category Management Functions
 def create_category(lab_id: str, category_data: Dict[str, Any]) -> Dict[str, Any]:
     timestamp = datetime.utcnow().isoformat()
@@ -113,14 +135,34 @@ def create_category(lab_id: str, category_data: Dict[str, Any]) -> Dict[str, Any
 
 def get_categories_by_lab(lab_id: str) -> List[Dict[str, Any]]:
     response = instruments_table.scan(
-        FilterExpression='#type = :type AND labId = :labId',
-        ExpressionAttributeNames={'#type': 'type'},
+        FilterExpression='labId = :labId AND #type IN (:instruments, :chemicals, :cultures)',
+        ExpressionAttributeNames={
+            '#type': 'type'
+        },
         ExpressionAttributeValues={
-            ':type': 'CATEGORY',
-            ':labId': lab_id
+            ':labId': lab_id,
+            ':instruments': 'INSTRUMENTS',
+            ':chemicals': 'CHEMICALS',
+            ':cultures': 'CULTURES'
         }
     )
     return response.get('Items', [])
+
+def delete_category(category_id: str) -> None:
+    """Delete a category and all its associated entries"""
+    logger.info(f"Deleting category: {category_id}")
+    
+    # First, get all entries in this category
+    entries = get_entries_by_category(category_id)
+    
+    # Delete all entries in this category
+    for entry in entries:
+        instruments_table.delete_item(Key={'instrumentId': entry['instrumentId']})
+        logger.info(f"Deleted entry: {entry['name']}")
+    
+    # Delete the category
+    instruments_table.delete_item(Key={'instrumentId': category_id})
+    logger.info(f"Deleted category: {category_id}")
 
 # Entry Management Functions
 def create_entry(category_id: str, entry_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -168,25 +210,41 @@ def get_entry(entry_id: str) -> Dict[str, Any]:
     return response.get('Item', {})
 
 def update_entry(entry_id: str, entry_data: Dict[str, Any]) -> Dict[str, Any]:
-    timestamp = datetime.utcnow().isoformat()
-    update_expr = 'SET updatedAt = :ts'
-    expr_attrs = {':ts': timestamp}
-    expr_names = {}
+    timestamp = datetime.utcnow().isoformat() + 'Z'
+    
+    # Build update expression dynamically
+    update_expression = "SET updatedAt = :updatedAt"
+    expression_values = {":updatedAt": timestamp}
     
     for key, value in entry_data.items():
-        if key != 'instrumentId':  # Don't update the primary key
-            update_expr += f', #{key} = :{key}'
-            expr_attrs[f':{key}'] = value
-            expr_names[f'#{key}'] = key
+        if key not in ['instrumentId', 'createdAt']:  # Don't update these fields
+            update_expression += f", #{key} = :{key}"
+            expression_values[f":{key}"] = value
     
-    response = instruments_table.update_item(
-        Key={'instrumentId': entry_id},
-        UpdateExpression=update_expr,
-        ExpressionAttributeValues=expr_attrs,
-        ExpressionAttributeNames=expr_names,
-        ReturnValues='ALL_NEW'
-    )
-    return response.get('Attributes', {})
+    # Build expression attribute names for reserved keywords
+    expression_names = {}
+    for key in entry_data.keys():
+        if key in ['name', 'type', 'status', 'location']:
+            expression_names[f"#{key}"] = key
+    
+    kwargs = {
+        'Key': {'instrumentId': entry_id},
+        'UpdateExpression': update_expression,
+        'ExpressionAttributeValues': expression_values,
+        'ReturnValues': 'ALL_NEW'
+    }
+    
+    if expression_names:
+        kwargs['ExpressionAttributeNames'] = expression_names
+    
+    response = instruments_table.update_item(**kwargs)
+    return response['Attributes']
+
+def delete_entry(entry_id: str) -> None:
+    """Delete an entry"""
+    logger.info(f"Deleting entry: {entry_id}")
+    instruments_table.delete_item(Key={'instrumentId': entry_id})
+    logger.info(f"Deleted entry: {entry_id}")
 
 # Booking Management Functions
 def create_booking(entry_id: str, booking_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -340,6 +398,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     lab = get_lab(lab_id)
                     logger.info(f"Found lab: {lab.get('name', 'Not found')}")
                     return create_response(200, lab)
+                elif http_method == 'DELETE':
+                    logger.info(f"Deleting lab: {lab_id}")
+                    delete_lab(lab_id)
+                    return create_response(204, '')
             
             # Categories endpoints
             elif len(path_parts) == 4 and path_parts[1] == 'labs' and path_parts[3] == 'categories':  # /inventory/labs/{labId}/categories
@@ -356,6 +418,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     category = create_category(lab_id, body)
                     logger.info(f"Created category: {category.get('name')}")
                     return create_response(201, category)
+            
+            elif len(path_parts) == 3 and path_parts[1] == 'categories':  # /inventory/categories/{categoryId}
+                category_id = path_parts[2]
+                logger.info(f"Processing /inventory/categories/{category_id} endpoint")
+                if http_method == 'DELETE':
+                    logger.info(f"Deleting category: {category_id}")
+                    delete_category(category_id)
+                    return create_response(204, '')
             
             # Entries endpoints
             elif len(path_parts) == 4 and path_parts[1] == 'categories' and path_parts[3] == 'entries':  # /inventory/categories/{categoryId}/entries
@@ -385,6 +455,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     entry = update_entry(entry_id, body)
                     logger.info(f"Updated entry: {entry.get('name')}")
                     return create_response(200, entry)
+                elif http_method == 'DELETE':
+                    logger.info(f"Deleting entry: {entry_id}")
+                    delete_entry(entry_id)
+                    return create_response(204, '')
             
             # Booking endpoints
             elif len(path_parts) == 4 and path_parts[1] == 'entries' and path_parts[3] == 'book':  # /inventory/entries/{entryId}/book
