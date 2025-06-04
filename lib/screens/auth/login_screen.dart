@@ -278,6 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         }
                         return null;
                       },
+                      onFieldSubmitted: (_) => _isLoading ? null : _login(),
                     ),
                     const SizedBox(height: 16),
                     Align(

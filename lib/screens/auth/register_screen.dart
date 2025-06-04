@@ -159,6 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }
                     return null;
                   },
+                  onFieldSubmitted: (_) => _isLoading ? null : _register(),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
