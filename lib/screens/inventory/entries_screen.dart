@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/category.dart';
 import '../../models/entry.dart';
 import '../../services/inventory_service.dart';
+import 'edit_entry_dialog.dart';
 
 class EntriesScreen extends StatefulWidget {
   final Category category;
@@ -300,9 +301,12 @@ class _EntriesScreenState extends State<EntriesScreen> {
 
   // Entry operations
   Future<void> _editEntry(Entry entry) async {
-    // TODO: Navigate to edit entry screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit entry: ${entry.name}')),
+    await showDialog(
+      context: context,
+      builder: (context) => EditEntryDialog(
+        entry: entry,
+        onEntryUpdated: _loadEntries,
+      ),
     );
   }
 

@@ -90,6 +90,41 @@ def get_lab(lab_id: str) -> Dict[str, Any]:
     response = instruments_table.get_item(Key={'instrumentId': lab_id})
     return response.get('Item', {})
 
+def update_lab(lab_id: str, lab_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Update a lab with new data"""
+    timestamp = datetime.utcnow().isoformat() + 'Z'
+    
+    # Build update expression dynamically
+    update_expression = "SET updatedAt = :updatedAt"
+    expression_values = {":updatedAt": timestamp}
+    expression_names = {}
+    
+    # Only allow updating certain fields
+    allowed_fields = ['name', 'description', 'location', 'status']
+    
+    for key, value in lab_data.items():
+        if key in allowed_fields:
+            if key in ['name', 'status', 'location']:  # Reserved keywords
+                update_expression += f", #{key} = :{key}"
+                expression_names[f"#{key}"] = key
+                expression_values[f":{key}"] = value
+            else:
+                update_expression += f", {key} = :{key}"
+                expression_values[f":{key}"] = value
+    
+    kwargs = {
+        'Key': {'instrumentId': lab_id},
+        'UpdateExpression': update_expression,
+        'ExpressionAttributeValues': expression_values,
+        'ReturnValues': 'ALL_NEW'
+    }
+    
+    if expression_names:
+        kwargs['ExpressionAttributeNames'] = expression_names
+    
+    response = instruments_table.update_item(**kwargs)
+    return response['Attributes']
+
 def delete_lab(lab_id: str) -> None:
     """Delete a lab and all its associated categories and entries"""
     logger.info(f"Deleting lab: {lab_id}")
@@ -145,6 +180,41 @@ def get_categories_by_lab(lab_id: str) -> List[Dict[str, Any]]:
         }
     )
     return response.get('Items', [])
+
+def update_category(category_id: str, category_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Update a category with new data"""
+    timestamp = datetime.utcnow().isoformat() + 'Z'
+    
+    # Build update expression dynamically
+    update_expression = "SET updatedAt = :updatedAt"
+    expression_values = {":updatedAt": timestamp}
+    expression_names = {}
+    
+    # Only allow updating certain fields
+    allowed_fields = ['name', 'categoryType', 'description', 'status']
+    
+    for key, value in category_data.items():
+        if key in allowed_fields:
+            if key in ['name', 'status']:  # Reserved keywords
+                update_expression += f", #{key} = :{key}"
+                expression_names[f"#{key}"] = key
+                expression_values[f":{key}"] = value
+            else:
+                update_expression += f", {key} = :{key}"
+                expression_values[f":{key}"] = value
+    
+    kwargs = {
+        'Key': {'instrumentId': category_id},
+        'UpdateExpression': update_expression,
+        'ExpressionAttributeValues': expression_values,
+        'ReturnValues': 'ALL_NEW'
+    }
+    
+    if expression_names:
+        kwargs['ExpressionAttributeNames'] = expression_names
+    
+    response = instruments_table.update_item(**kwargs)
+    return response['Attributes']
 
 def delete_category(category_id: str) -> None:
     """Delete a category and all its associated entries"""
@@ -416,6 +486,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     lab = get_lab(lab_id)
                     logger.info(f"Found lab: {lab.get('name', 'Not found')}")
                     return create_response(200, lab)
+                elif http_method == 'PUT':
+                    logger.info(f"Updating lab: {lab_id}")
+                    lab = update_lab(lab_id, body)
+                    logger.info(f"Updated lab: {lab.get('name')}")
+                    return create_response(200, lab)
                 elif http_method == 'DELETE':
                     logger.info(f"Deleting lab: {lab_id}")
                     delete_lab(lab_id)
@@ -440,7 +515,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             elif len(path_parts) == 3 and path_parts[1] == 'categories':  # /inventory/categories/{categoryId}
                 category_id = path_parts[2]
                 logger.info(f"Processing /inventory/categories/{category_id} endpoint")
-                if http_method == 'DELETE':
+                if http_method == 'PUT':
+                    logger.info(f"Updating category: {category_id}")
+                    category = update_category(category_id, body)
+                    logger.info(f"Updated category: {category.get('name')}")
+                    return create_response(200, category)
+                elif http_method == 'DELETE':
                     logger.info(f"Deleting category: {category_id}")
                     delete_category(category_id)
                     return create_response(204, '')

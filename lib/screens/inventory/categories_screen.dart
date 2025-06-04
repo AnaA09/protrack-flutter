@@ -4,6 +4,7 @@ import '../../models/lab.dart';
 import '../../models/category.dart';
 import '../../services/inventory_service.dart';
 import 'entries_screen.dart';
+import 'edit_category_dialog.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final Lab lab;
@@ -265,9 +266,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   // Category operations
   Future<void> _editCategory(Category category) async {
-    // TODO: Navigate to edit category screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit category: ${category.name}')),
+    await showDialog(
+      context: context,
+      builder: (context) => EditCategoryDialog(
+        category: category,
+        onCategoryUpdated: _loadCategories,
+      ),
     );
   }
 

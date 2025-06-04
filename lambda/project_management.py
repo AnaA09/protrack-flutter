@@ -70,7 +70,11 @@ def update_instrument(instrument_id: str, instrument_data: Dict[str, Any]) -> Di
     expr_attrs = {':ts': timestamp}
     expr_names = {}
     
-    for key, value in instrument_data.items():
+    # Filter out system fields that shouldn't be updated by the user
+    system_fields = {'updatedAt', 'createdAt', 'instrumentId'}
+    filtered_data = {k: v for k, v in instrument_data.items() if k not in system_fields}
+    
+    for key, value in filtered_data.items():
         update_expr += f', #{key} = :{key}'
         expr_attrs[f':{key}'] = value
         expr_names[f'#{key}'] = key
@@ -131,7 +135,11 @@ def update_project(project_id: str, project_data: Dict[str, Any]) -> Dict[str, A
     expr_attrs = {':ts': timestamp}
     expr_names = {}
     
-    for key, value in project_data.items():
+    # Filter out system fields that shouldn't be updated by the user
+    system_fields = {'updatedAt', 'createdAt', 'projectId', 'createdBy'}
+    filtered_data = {k: v for k, v in project_data.items() if k not in system_fields}
+    
+    for key, value in filtered_data.items():
         update_expr += f', #{key} = :{key}'
         expr_attrs[f':{key}'] = value
         expr_names[f'#{key}'] = key
@@ -218,7 +226,11 @@ def update_task(task_id: str, project_id: str, task_data: Dict[str, Any]) -> Dic
     expr_attrs = {':ts': timestamp}
     expr_names = {}
     
-    for key, value in task_data.items():
+    # Filter out system fields that shouldn't be updated by the user
+    system_fields = {'updatedAt', 'createdAt', 'taskId', 'projectId'}
+    filtered_data = {k: v for k, v in task_data.items() if k not in system_fields}
+    
+    for key, value in filtered_data.items():
         update_expr += f', #{key} = :{key}'
         expr_attrs[f':{key}'] = value
         expr_names[f'#{key}'] = key
@@ -314,7 +326,11 @@ def update_activity(activity_id: str, task_id: str, activity_data: Dict[str, Any
             for instrument_id in current_activity.get('usedInstruments', []):
                 update_instrument(instrument_id, {'status': 'AVAILABLE'})
     
-    for key, value in activity_data.items():
+    # Filter out system fields that shouldn't be updated by the user
+    system_fields = {'updatedAt', 'createdAt', 'activityId', 'taskId', 'projectId'}
+    filtered_data = {k: v for k, v in activity_data.items() if k not in system_fields}
+    
+    for key, value in filtered_data.items():
         update_expr += f', #{key} = :{key}'
         expr_attrs[f':{key}'] = value
         expr_names[f'#{key}'] = key

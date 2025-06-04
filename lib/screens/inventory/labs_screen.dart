@@ -4,6 +4,7 @@ import '../../models/lab.dart';
 import '../../services/inventory_service.dart';
 import 'categories_screen.dart';
 import 'add_lab_screen.dart';
+import 'edit_lab_screen.dart';
 
 class LabsScreen extends StatefulWidget {
   const LabsScreen({Key? key}) : super(key: key);
@@ -324,10 +325,17 @@ class _LabsScreenState extends State<LabsScreen> {
 
   // Lab operations
   Future<void> _editLab(Lab lab) async {
-    // TODO: Navigate to edit lab screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit lab: ${lab.name}')),
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditLabScreen(lab: lab),
+      ),
     );
+
+    // If the lab was updated, refresh the list
+    if (result == true) {
+      _loadLabs();
+    }
   }
 
   Future<void> _deleteLab(Lab lab) async {

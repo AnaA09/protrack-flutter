@@ -52,6 +52,16 @@ class InventoryService {
     }
   }
 
+  Future<Lab> updateLab(String labId, Map<String, dynamic> labData) async {
+    try {
+      final response = await _apiService.put('/inventory/labs/$labId', labData);
+      return Lab.fromJson(response);
+    } catch (e) {
+      debugPrint('Error updating lab: $e');
+      rethrow;
+    }
+  }
+
   // Category Management
   Future<List<Category>> getCategoriesByLab(String labId) async {
     try {
@@ -82,6 +92,18 @@ class InventoryService {
       await _apiService.delete('/inventory/categories/$categoryId');
     } catch (e) {
       debugPrint('Error deleting category: $e');
+      rethrow;
+    }
+  }
+
+  Future<Category> updateCategory(
+      String categoryId, Map<String, dynamic> categoryData) async {
+    try {
+      final response = await _apiService.put(
+          '/inventory/categories/$categoryId', categoryData);
+      return Category.fromJson(response);
+    } catch (e) {
+      debugPrint('Error updating category: $e');
       rethrow;
     }
   }

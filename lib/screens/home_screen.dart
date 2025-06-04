@@ -10,6 +10,9 @@ import '../services/api_service.dart';
 import '../services/cognito_service.dart';
 import '../routes/app_routes.dart';
 import 'inventory/labs_screen.dart';
+import 'projects/edit_project_dialog.dart';
+import 'tasks/edit_task_dialog.dart';
+import 'activities/edit_activity_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -211,7 +214,8 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Sign Out'),
             onTap: () async {
               Navigator.pop(context);
-              final cognitoService = Provider.of<CognitoService>(context, listen: false);
+              final cognitoService =
+                  Provider.of<CognitoService>(context, listen: false);
               await cognitoService.signOut();
               if (mounted) {
                 Navigator.pushReplacementNamed(context, AppRoutes.login);
@@ -554,9 +558,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Project operations
   Future<void> _editProject(Project project) async {
-    // TODO: Navigate to edit project screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit project: ${project.name}')),
+    await showDialog(
+      context: context,
+      builder: (context) => EditProjectDialog(
+        project: project,
+        onProjectUpdated: _loadData,
+      ),
     );
   }
 
@@ -598,9 +605,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Task operations
   Future<void> _editTask(Task task) async {
-    // TODO: Navigate to edit task screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit task: ${task.name}')),
+    await showDialog(
+      context: context,
+      builder: (context) => EditTaskDialog(
+        task: task,
+        onTaskUpdated: _loadData,
+      ),
     );
   }
 
@@ -642,9 +652,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Activity operations
   Future<void> _editActivity(Activity activity) async {
-    // TODO: Navigate to edit activity screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit activity: ${activity.name}')),
+    await showDialog(
+      context: context,
+      builder: (context) => EditActivityDialog(
+        activity: activity,
+        onActivityUpdated: _loadData,
+      ),
     );
   }
 
