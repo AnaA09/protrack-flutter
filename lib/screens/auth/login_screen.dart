@@ -202,16 +202,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Set backgroundColor to a light green shade
+      backgroundColor: const Color(0xFFFFFF), // light green
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/login_bg.png',
-              fit: BoxFit.cover,
-              color: Colors.white.withOpacity(0.85),
-              colorBlendMode: BlendMode.lighten,
-            ),
-          ),
+          // Removed background image
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
