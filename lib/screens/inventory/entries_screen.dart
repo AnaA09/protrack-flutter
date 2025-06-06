@@ -4,6 +4,7 @@ import '../../models/category.dart';
 import '../../models/entry.dart';
 import '../../services/inventory_service.dart';
 import 'edit_entry_dialog.dart';
+import 'entry_detail_screen.dart';
 
 class EntriesScreen extends StatefulWidget {
   final Category category;
@@ -172,9 +173,11 @@ class _EntriesScreenState extends State<EntriesScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to entry detail screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('View details for ${entry.name}')),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EntryDetailScreen(entry: entry),
+            ),
           );
         },
         borderRadius: BorderRadius.circular(12),
