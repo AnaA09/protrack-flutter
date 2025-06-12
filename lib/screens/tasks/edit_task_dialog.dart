@@ -187,6 +187,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                           return DropdownMenuItem<String>(
                             value: status,
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   width: 12,
@@ -197,7 +198,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(status),
+                                Flexible(
+                                  child: Text(
+                                    status,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -236,12 +242,18 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                TextFormField(
-                  controller: _assignedToController,
-                  decoration: const InputDecoration(
-                    labelText: 'Assigned To',
-                    hintText: 'Enter assignee',
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _assignedToController,
+                        decoration: const InputDecoration(
+                          labelText: 'Assigned To',
+                          hintText: 'Enter assignee name',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 

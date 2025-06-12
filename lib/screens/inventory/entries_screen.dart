@@ -205,6 +205,7 @@ class _EntriesScreenState extends State<EntriesScreen> {
                           entry.name,
                           style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         if (entry.model?.isNotEmpty == true) ...[
                           const SizedBox(height: 2),
@@ -212,6 +213,7 @@ class _EntriesScreenState extends State<EntriesScreen> {
                             entry.model!,
                             style: TextStyle(
                                 fontSize: 14, color: Colors.grey[600]),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ],
