@@ -1,0 +1,8 @@
+# Deployment Information
+# Generated on: Thu Jun 12 09:33:48 MDT 2025
+BUCKET_NAME=protrack-web-app
+REGION=us-east-1
+DISTRIBUTION_ID=E3S0C8VOU53MVK
+DISTRIBUTION_DOMAIN=dfivd5cnr7m3p.cloudfront.net
+S3_WEBSITE_URL=http://protrack-web-app.s3-website-us-east-1.amazonaws.com
+CLOUDFRONT_URL=https://dfivd5cnr7m3p.cloudfront.net
