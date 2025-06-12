@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 import '../../models/entry.dart';
@@ -180,8 +181,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('From: ${_currentBooking!.startDate}'),
-                        Text('To: ${_currentBooking!.endDate}'),
+                        Text(
+                            'From: ${_currentBooking!.formattedStartDateTime}'),
+                        Text('To: ${_currentBooking!.formattedEndDateTime}'),
                         Text('Status: ${_currentBooking!.status}'),
                         if (_currentBooking!.notes.isNotEmpty)
                           Text('Notes: ${_currentBooking!.notes}'),
@@ -210,8 +212,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('From: ${booking.startDate}'),
-                            Text('To: ${booking.endDate}'),
+                            Text('From: ${booking.formattedStartDateTime}'),
+                            Text('To: ${booking.formattedEndDateTime}'),
                             Text('Status: ${booking.status}'),
                             if (booking.notes.isNotEmpty)
                               Text('Notes: ${booking.notes}'),
@@ -240,8 +242,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('From: ${booking.startDate}'),
-                            Text('To: ${booking.endDate}'),
+                            Text('From: ${booking.formattedStartDateTime}'),
+                            Text('To: ${booking.formattedEndDateTime}'),
                             Text('Status: ${booking.status}'),
                             if (booking.notes.isNotEmpty)
                               Text('Notes: ${booking.notes}'),
@@ -278,6 +280,8 @@ class _BookingDialogState extends State<_BookingDialog> {
   final _notesController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
   bool _isLoading = false;
   String? _error;
 
@@ -307,14 +311,18 @@ class _BookingDialogState extends State<_BookingDialog> {
         'notes': _notesController.text.trim(),
         'startDate': _startDate!.toIso8601String().split('T').first,
         'endDate': _endDate!.toIso8601String().split('T').first,
+        'startTime': _startTime != null
+            ? '${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00'
+            : null,
+        'endTime': _endTime != null
+            ? '${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00'
+            : null,
       });
 
-      // Only pop if the widget is still mounted and context is valid
       if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context, booking);
       }
     } catch (e) {
-      // Only update state if widget is still mounted
       if (mounted) {
         setState(() {
           _error = 'Failed to create booking: $e';
@@ -322,6 +330,59 @@ class _BookingDialogState extends State<_BookingDialog> {
         });
       }
     }
+  }
+
+  Future<void> _selectDateTime(BuildContext context, bool isStartTime) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: isStartTime
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? DateTime.now()),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (pickedDate != null) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: isStartTime
+            ? (_startTime ?? TimeOfDay.now())
+            : (_endTime ?? TimeOfDay.now()),
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          if (isStartTime) {
+            _startDate = DateTime(
+              pickedDate.year,
+              pickedDate.month,
+              pickedDate.day,
+              pickedTime.hour,
+              pickedTime.minute,
+            );
+            _startTime = pickedTime;
+          } else {
+            _endDate = DateTime(
+              pickedDate.year,
+              pickedDate.month,
+              pickedDate.day,
+              pickedTime.hour,
+              pickedTime.minute,
+            );
+            _endTime = pickedTime;
+          }
+        });
+      }
+    }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final formattedDate = DateFormat('MMM d, yyyy').format(dateTime);
+    final hour = dateTime.hour;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '$formattedDate ${hour12}:$minute $period';
   }
 
   @override
@@ -346,66 +407,61 @@ class _BookingDialogState extends State<_BookingDialog> {
                 decoration: const InputDecoration(labelText: 'Notes'),
                 maxLines: 2,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate:
-                              DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (picked != null) setState(() => _startDate = picked);
-                      },
-                      child: Text(_startDate == null
-                          ? 'Start Date'
-                          : _startDate!.toLocal().toString().split(' ')[0]),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _startDate ?? DateTime.now(),
-                          firstDate: _startDate ?? DateTime.now(),
-                          lastDate:
-                              DateTime.now().add(const Duration(days: 366)),
-                        );
-                        if (picked != null) setState(() => _endDate = picked);
-                      },
-                      child: Text(_endDate == null
-                          ? 'End Date'
-                          : _endDate!.toLocal().toString().split(' ')[0]),
+                    child: OutlinedButton.icon(
+                      onPressed: () => _selectDateTime(context, true),
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text(_startDate == null
+                          ? 'Pick Start Time'
+                          : _formatDateTime(_startDate!)),
                     ),
                   ),
                 ],
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ],
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _selectDateTime(context, false),
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text(_endDate == null
+                          ? 'Pick End Time'
+                          : _formatDateTime(_endDate!)),
+                    ),
+                  ),
+                ],
+              ),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
             ],
           ),
         ),
       ),
       actions: [
         TextButton(
-            onPressed: _isLoading ? null : () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
-            onPressed: _isLoading ? null : _submit,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Book')),
+          onPressed: _isLoading ? null : _submit,
+          child: _isLoading
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Book'),
+        ),
       ],
     );
   }

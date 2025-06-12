@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:intl/intl.dart';
 
 part 'booking.g.dart';
 
@@ -66,8 +67,57 @@ class Booking {
     );
   }
 
+  String get formattedStartDateTime {
+    try {
+      final date = DateTime.parse(startDate);
+      final formattedDate = DateFormat('MMM d, yyyy').format(date);
+      if (startTime != null) {
+        // Parse the time string (HH:mm:ss)
+        final timeParts = startTime!.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = timeParts[1];
+        final period = hour >= 12 ? 'PM' : 'AM';
+        final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+        return '$formattedDate ${hour12}:$minute $period';
+      }
+      return formattedDate;
+    } catch (e) {
+      return startTime != null ? '$startDate $startTime' : startDate;
+    }
+  }
+
+  String get formattedEndDateTime {
+    try {
+      final date = DateTime.parse(endDate);
+      final formattedDate = DateFormat('MMM d, yyyy').format(date);
+      if (endTime != null) {
+        // Parse the time string (HH:mm:ss)
+        final timeParts = endTime!.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = timeParts[1];
+        final period = hour >= 12 ? 'PM' : 'AM';
+        final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+        return '$formattedDate ${hour12}:$minute $period';
+      }
+      return formattedDate;
+    } catch (e) {
+      return endTime != null ? '$endDate $endTime' : endDate;
+    }
+  }
+
   bool get isActive => status == 'CONFIRMED';
 
-  DateTime get startDateTime => DateTime.parse(startDate);
-  DateTime get endDateTime => DateTime.parse(endDate);
+  DateTime get startDateTime {
+    if (startTime != null) {
+      return DateTime.parse('${startDate}T${startTime}');
+    }
+    return DateTime.parse(startDate);
+  }
+
+  DateTime get endDateTime {
+    if (endTime != null) {
+      return DateTime.parse('${endDate}T${endTime}');
+    }
+    return DateTime.parse(endDate);
+  }
 }
