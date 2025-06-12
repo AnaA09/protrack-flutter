@@ -97,6 +97,7 @@ firebase_options.dart
 terraform.tfstate*
 .terraform/
 *.tfvars
+cognito_tokens.json
 
 # Python (for Lambda functions)
 __pycache__/

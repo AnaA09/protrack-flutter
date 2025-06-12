@@ -274,8 +274,29 @@ def get_entries_by_category(category_id: str) -> List[Dict[str, Any]]:
     return response.get('Items', [])
 
 def get_entry(entry_id: str) -> Dict[str, Any]:
+    # First try to get by instrumentId (primary key) for backward compatibility
     response = instruments_table.get_item(Key={'instrumentId': entry_id})
-    return response.get('Item', {})
+    if response.get('Item'):
+        return response['Item']
+    
+    # If not found, search by entryId field
+    logger.info(f"Entry not found by instrumentId, searching by entryId: {entry_id}")
+    response = instruments_table.scan(
+        FilterExpression='entryId = :entryId AND #type = :type',
+        ExpressionAttributeNames={'#type': 'type'},
+        ExpressionAttributeValues={
+            ':entryId': entry_id,
+            ':type': 'ENTRY'
+        }
+    )
+    
+    items = response.get('Items', [])
+    if items:
+        logger.info(f"Found entry by entryId: {items[0].get('name', 'Unknown')}")
+        return items[0]
+    
+    logger.warning(f"Entry not found by either instrumentId or entryId: {entry_id}")
+    return {}
 
 def update_entry(entry_id: str, entry_data: Dict[str, Any]) -> Dict[str, Any]:
     timestamp = datetime.utcnow().isoformat() + 'Z'
@@ -283,17 +304,21 @@ def update_entry(entry_id: str, entry_data: Dict[str, Any]) -> Dict[str, Any]:
     # Build update expression dynamically
     update_expression = "SET updatedAt = :updatedAt"
     expression_values = {":updatedAt": timestamp}
+    expression_names = {}
+    
+    # List of DynamoDB reserved keywords that need expression attribute names
+    reserved_keywords = ['name', 'type', 'status', 'location', 'size', 'timestamp', 'data']
     
     for key, value in entry_data.items():
         if key not in ['instrumentId', 'createdAt']:  # Don't update these fields
-            update_expression += f", #{key} = :{key}"
+            if key.lower() in reserved_keywords:
+                # Use expression attribute name for reserved keywords
+                update_expression += f", #{key} = :{key}"
+                expression_names[f"#{key}"] = key
+            else:
+                # Use direct attribute name for non-reserved keywords
+                update_expression += f", {key} = :{key}"
             expression_values[f":{key}"] = value
-    
-    # Build expression attribute names for reserved keywords
-    expression_names = {}
-    for key in entry_data.keys():
-        if key in ['name', 'type', 'status', 'location']:
-            expression_names[f"#{key}"] = key
     
     kwargs = {
         'Key': {'instrumentId': entry_id},
@@ -339,21 +364,103 @@ def create_booking(entry_id: str, booking_data: Dict[str, Any]) -> Dict[str, Any
     timestamp = datetime.utcnow().isoformat()
     booking_id = str(uuid.uuid4())
     
-    # Check if entry is available
+    logger.info(f"Creating booking for entry: {entry_id}")
+    logger.info(f"Booking data: {json.dumps(booking_data)}")
+    
+    # Check if entry exists
     entry = get_entry(entry_id)
-    if not entry or entry.get('status') != 'AVAILABLE':
-        raise ValueError("Entry is not available for booking")
+    logger.info(f"Retrieved entry: {json.dumps(entry, cls=DecimalEncoder)}")
+    
+    if not entry:
+        logger.error(f"Entry not found: {entry_id}")
+        raise ValueError("Entry not found")
+    
+    # Check if entry is available for booking
+    # Accept entries with status 'AVAILABLE', 'ACTIVE', or 'IN_STOCK'
+    entry_status = entry.get('status', '').upper()
+    available_statuses = ['AVAILABLE', 'ACTIVE', 'IN_STOCK']
+    
+    if entry_status not in available_statuses:
+        logger.error(f"Entry status '{entry_status}' is not bookable. Available statuses: {available_statuses}")
+        raise ValueError(f"Entry is not available for booking. Current status: {entry_status}")
+    
+    # Check available quantity
+    available_qty = entry.get('availableQuantity', entry.get('quantity', 1))
+    if available_qty <= 0:
+        logger.error(f"Entry has no available quantity: {available_qty}")
+        raise ValueError("Entry has no available quantity for booking")
     
     # Check availability for the requested dates
     start_date = booking_data.get('startDate')
     end_date = booking_data.get('endDate')
     
+    logger.info(f"Checking availability for dates: {start_date} to {end_date}")
+    
+    if not start_date or not end_date:
+        logger.error("Missing start date or end date")
+        raise ValueError("Start date and end date are required")
+    
     if not is_available(entry_id, start_date, end_date):
-        raise ValueError("Entry is not available for the requested dates")
+        logger.error(f"Entry is not available for the requested dates: {start_date} to {end_date}")
+        
+        # Get more details about the conflict for a better error message
+        bookings = get_bookings_by_entry(entry_id)
+        conflicting_bookings = []
+        
+        try:
+            # Parse the requested dates
+            if 'T' in start_date or 'Z' in start_date:
+                req_start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                req_end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            else:
+                req_start = datetime.fromisoformat(start_date + 'T00:00:00')
+                req_end = datetime.fromisoformat(end_date + 'T23:59:59')
+            
+            # Find conflicting bookings
+            for booking in bookings:
+                if booking['status'] != 'CONFIRMED':
+                    continue
+                    
+                try:
+                    booking_start_str = booking['startDate']
+                    booking_end_str = booking['endDate']
+                    
+                    if 'T' in booking_start_str or 'Z' in booking_start_str:
+                        booking_start = datetime.fromisoformat(booking_start_str.replace('Z', '+00:00'))
+                        booking_end = datetime.fromisoformat(booking_end_str.replace('Z', '+00:00'))
+                    else:
+                        booking_start = datetime.fromisoformat(booking_start_str + 'T00:00:00')
+                        booking_end = datetime.fromisoformat(booking_end_str + 'T23:59:59')
+                    
+                    # Check for overlap
+                    if not (req_end < booking_start or req_start > booking_end):
+                        conflicting_bookings.append({
+                            'startDate': booking['startDate'],
+                            'endDate': booking['endDate'],
+                            'purpose': booking.get('purpose', 'No purpose specified')
+                        })
+                except Exception:
+                    continue
+            
+            # Create a detailed error message
+            if conflicting_bookings:
+                conflict_details = []
+                for conflict in conflicting_bookings:
+                    conflict_details.append(f"{conflict['startDate']} to {conflict['endDate']} (Purpose: {conflict['purpose']})")
+                
+                error_msg = f"Booking conflict detected. The requested dates ({start_date} to {end_date}) overlap with existing booking(s): {'; '.join(conflict_details)}. Please choose different dates."
+            else:
+                error_msg = f"The requested dates ({start_date} to {end_date}) are not available for booking. Please choose different dates."
+                
+        except Exception as e:
+            logger.error(f"Error creating detailed conflict message: {e}")
+            error_msg = f"The requested dates ({start_date} to {end_date}) conflict with an existing booking. Please choose different dates."
+        
+        raise ValueError(error_msg)
     
     item = {
         'bookingId': booking_id,
-        'entryId': entry_id,
+        'entryId': entry.get('instrumentId'),  # Use the actual instrumentId for consistency
         'userId': booking_data.get('userId'),
         'startDate': start_date,
         'endDate': end_date,
@@ -366,22 +473,38 @@ def create_booking(entry_id: str, booking_data: Dict[str, Any]) -> Dict[str, Any
         'updatedAt': timestamp
     }
     
+    logger.info(f"Creating booking item: {json.dumps(item, cls=DecimalEncoder)}")
+    
     # Create booking in bookings table
     bookings_table.put_item(Item=item)
+    logger.info(f"Successfully created booking: {booking_id}")
     
     # Update entry availability if needed
-    available_qty = entry.get('availableQuantity', 1) - 1
-    if available_qty <= 0:
-        update_entry(entry_id, {'status': 'IN_USE', 'availableQuantity': 0})
+    actual_entry_id = entry.get('instrumentId')
+    new_available_qty = available_qty - 1
+    if new_available_qty <= 0:
+        logger.info(f"Setting entry status to IN_USE, available quantity: 0")
+        update_entry(actual_entry_id, {'status': 'IN_USE', 'availableQuantity': 0})
     else:
-        update_entry(entry_id, {'availableQuantity': available_qty})
+        logger.info(f"Updating available quantity to: {new_available_qty}")
+        update_entry(actual_entry_id, {'availableQuantity': new_available_qty})
     
     return item
 
 def get_bookings_by_entry(entry_id: str) -> List[Dict[str, Any]]:
+    # Get the entry first to determine the correct ID to use for bookings
+    entry = get_entry(entry_id)
+    if not entry:
+        logger.warning(f"Entry not found for bookings lookup: {entry_id}")
+        return []
+    
+    # Use the instrumentId (primary key) for booking lookups
+    actual_entry_id = entry.get('instrumentId', entry_id)
+    logger.info(f"Looking up bookings for entry: {actual_entry_id}")
+    
     response = bookings_table.scan(
         FilterExpression='entryId = :entryId',
-        ExpressionAttributeValues={':entryId': entry_id}
+        ExpressionAttributeValues={':entryId': actual_entry_id}
     )
     return response.get('Items', [])
 
@@ -389,8 +512,19 @@ def get_available_dates(entry_id: str, start_date: str, end_date: str) -> List[s
     """Get available dates for booking within the specified range"""
     bookings = get_bookings_by_entry(entry_id)
     
-    start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-    end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    # Parse dates - handle both date-only and datetime formats
+    try:
+        if 'T' in start_date or 'Z' in start_date:
+            # Full datetime format
+            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        else:
+            # Date-only format (e.g., "2024-12-02")
+            start = datetime.fromisoformat(start_date + 'T00:00:00')
+            end = datetime.fromisoformat(end_date + 'T23:59:59')
+    except Exception as e:
+        logger.error(f"Error parsing dates in get_available_dates: {e}")
+        return []
     
     available_dates = []
     current_date = start
@@ -400,12 +534,27 @@ def get_available_dates(entry_id: str, start_date: str, end_date: str) -> List[s
         is_date_available = True
         
         for booking in bookings:
-            booking_start = datetime.fromisoformat(booking['startDate'].replace('Z', '+00:00')).date()
-            booking_end = datetime.fromisoformat(booking['endDate'].replace('Z', '+00:00')).date()
-            
-            if booking_start <= current_date.date() <= booking_end:
-                is_date_available = False
-                break
+            if booking['status'] != 'CONFIRMED':
+                continue
+                
+            try:
+                booking_start_str = booking['startDate']
+                booking_end_str = booking['endDate']
+                
+                # Parse booking dates - handle both formats
+                if 'T' in booking_start_str or 'Z' in booking_start_str:
+                    booking_start = datetime.fromisoformat(booking_start_str.replace('Z', '+00:00')).date()
+                    booking_end = datetime.fromisoformat(booking_end_str.replace('Z', '+00:00')).date()
+                else:
+                    booking_start = datetime.fromisoformat(booking_start_str + 'T00:00:00').date()
+                    booking_end = datetime.fromisoformat(booking_end_str + 'T23:59:59').date()
+                
+                if booking_start <= current_date.date() <= booking_end:
+                    is_date_available = False
+                    break
+            except Exception as e:
+                logger.error(f"Error parsing booking dates in get_available_dates: {e}")
+                continue
         
         if is_date_available:
             available_dates.append(date_str)
@@ -416,45 +565,99 @@ def get_available_dates(entry_id: str, start_date: str, end_date: str) -> List[s
 
 def is_available(entry_id: str, start_date: str, end_date: str) -> bool:
     """Check if entry is available for the specified date range"""
-    bookings = get_bookings_by_entry(entry_id)
+    logger.info(f"Checking availability for entry {entry_id}, dates: {start_date} to {end_date}")
     
-    start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-    end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    bookings = get_bookings_by_entry(entry_id)
+    logger.info(f"Found {len(bookings)} existing bookings for entry")
+    
+    # Parse dates - handle both date-only and datetime formats
+    try:
+        if 'T' in start_date or 'Z' in start_date:
+            # Full datetime format
+            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        else:
+            # Date-only format (e.g., "2024-12-02")
+            start = datetime.fromisoformat(start_date + 'T00:00:00')
+            end = datetime.fromisoformat(end_date + 'T23:59:59')
+        
+        logger.info(f"Parsed dates - start: {start}, end: {end}")
+    except Exception as e:
+        logger.error(f"Error parsing dates: {e}")
+        return False
     
     for booking in bookings:
         if booking['status'] != 'CONFIRMED':
+            logger.info(f"Skipping booking {booking.get('bookingId')} with status: {booking['status']}")
             continue
-            
-        booking_start = datetime.fromisoformat(booking['startDate'].replace('Z', '+00:00'))
-        booking_end = datetime.fromisoformat(booking['endDate'].replace('Z', '+00:00'))
         
-        # Check for overlap
-        if not (end < booking_start or start > booking_end):
-            return False
+        try:
+            booking_start_str = booking['startDate']
+            booking_end_str = booking['endDate']
+            
+            # Parse booking dates - handle both formats
+            if 'T' in booking_start_str or 'Z' in booking_start_str:
+                booking_start = datetime.fromisoformat(booking_start_str.replace('Z', '+00:00'))
+                booking_end = datetime.fromisoformat(booking_end_str.replace('Z', '+00:00'))
+            else:
+                booking_start = datetime.fromisoformat(booking_start_str + 'T00:00:00')
+                booking_end = datetime.fromisoformat(booking_end_str + 'T23:59:59')
+            
+            logger.info(f"Checking overlap with booking {booking.get('bookingId')}: {booking_start} to {booking_end}")
+            
+            # Check for overlap: two date ranges overlap if NOT (end1 < start2 OR start1 > end2)
+            if not (end < booking_start or start > booking_end):
+                logger.info(f"Date overlap detected with booking {booking.get('bookingId')}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error parsing booking dates: {e}")
+            continue
     
+    logger.info("No date conflicts found - entry is available")
     return True
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     logger.info("=== Lambda function started ===")
     logger.info(f"Event: {json.dumps(event)}")
+    logger.info(f"Event keys: {list(event.keys())}")
     logger.info(f"Environment variables: INSTRUMENTS_TABLE={os.environ.get('INSTRUMENTS_TABLE')}, BOOKINGS_TABLE={os.environ.get('BOOKINGS_TABLE')}")
     
     try:
+        # Safely get HTTP method from event
+        http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method')
+        if not http_method:
+            logger.error("No httpMethod found in event")
+            logger.error(f"Event structure: {json.dumps(event, indent=2)}")
+            return create_response(400, {'error': 'Missing httpMethod in event'})
+        
+        logger.info(f"HTTP Method: {http_method}")
+        
         # Handle OPTIONS request for CORS preflight
-        if event['httpMethod'] == 'OPTIONS':
+        if http_method == 'OPTIONS':
             logger.info("Handling OPTIONS request")
             return create_response(200, '')
 
-        # Get user ID from Cognito authorizer
-        logger.info("Extracting user ID from Cognito authorizer")
-        user_id = event['requestContext']['authorizer']['claims']['sub']
-        logger.info(f"User ID: {user_id}")
+        # Safely get path from event
+        path = event.get('path') or event.get('requestContext', {}).get('http', {}).get('path')
+        if not path:
+            logger.error("No path found in event")
+            return create_response(400, {'error': 'Missing path in event'})
         
-        # Get HTTP method and path
-        http_method = event['httpMethod']
-        path = event['path']
+        logger.info(f"Path: {path}")
         path_parts = path.strip('/').split('/')
-        logger.info(f"HTTP Method: {http_method}, Path: {path}, Path parts: {path_parts}")
+        logger.info(f"Path parts: {path_parts}")
+
+        # Get user ID from Cognito authorizer (only for non-OPTIONS requests)
+        user_id = None
+        if http_method != 'OPTIONS':
+            try:
+                logger.info("Extracting user ID from Cognito authorizer")
+                user_id = event['requestContext']['authorizer']['claims']['sub']
+                logger.info(f"User ID: {user_id}")
+            except KeyError as e:
+                logger.warning(f"Could not extract user ID: {e}")
+                # For some endpoints, user ID might not be required
         
         # Parse request body if present
         body = json.loads(event['body']) if event.get('body') else {}

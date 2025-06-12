@@ -1,6 +1,7 @@
 import json
 import boto3
 from user_management import lambda_handler
+from project_management import lambda_handler as project_lambda_handler
 
 def test_local():
     # Test event simulating API Gateway with Cognito authorizer
@@ -73,9 +74,41 @@ def test_prod():
         print(f"Status Code: {response_payload['statusCode']}")
         print(f"Response: {response_payload['body']}")
 
+def test_lambda_function():
+    # Simulate the exact event that would come from API Gateway
+    event = {
+        'httpMethod': 'GET',
+        'path': '/projects/fa93a931-42b4-4cbc-982a-425e04766577',
+        'requestContext': {
+            'authorizer': {
+                'claims': {
+                    'sub': 'test-user-id'
+                }
+            }
+        },
+        'body': None
+    }
+    
+    context = {}  # Mock context
+    
+    try:
+        response = project_lambda_handler(event, context)
+        print(f"✅ Lambda function succeeded!")
+        print(f"Status Code: {response['statusCode']}")
+        print(f"Headers: {json.dumps(response['headers'], indent=2)}")
+        print(f"Body: {response['body']}")
+        
+    except Exception as e:
+        print(f"❌ Lambda function failed: {e}")
+        import traceback
+        traceback.print_exc()
+
 if __name__ == "__main__":
     print("Testing Lambda locally:")
     test_local()
     
     print("\nTesting Lambda in production:")
  #   test_prod() 
+
+    print("\nTesting Lambda function:")
+    test_lambda_function() 
