@@ -212,6 +212,7 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
                           return DropdownMenuItem<String>(
                             value: status,
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   width: 12,
@@ -222,7 +223,12 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(status),
+                                Flexible(
+                                  child: Text(
+                                    status,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ],
                             ),
                           );
