@@ -16,6 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _showPassword = false;
 
   @override
   void dispose() {
@@ -142,7 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_showPassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
                     prefixIcon: const Icon(Icons.lock_outline),
@@ -160,6 +161,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                   onFieldSubmitted: (_) => _isLoading ? null : _register(),
+                ),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _showPassword,
+                      onChanged: (value) {
+                        setState(() {
+                          _showPassword = value ?? false;
+                        });
+                      },
+                    ),
+                    const Text('Show Password'),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
