@@ -6,6 +6,7 @@ import '../../services/task_service.dart';
 import '../../services/api_service.dart';
 import '../../services/cognito_service.dart';
 import 'create_task_form.dart';
+import '../tasks/task_detail_page.dart';
 
 class ProjectDetailPage extends StatefulWidget {
   final Project project;
@@ -73,9 +74,11 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   }
 
   void _navigateToTaskDetail(Task task) {
-    // TODO: Navigate to TaskDetailPage once it's created
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Opening task: ${task.name}')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TaskDetailPage(task: task),
+      ),
     );
   }
 

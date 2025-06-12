@@ -16,6 +16,9 @@ import 'activities/edit_activity_dialog.dart';
 import 'projects/projects_page.dart';
 import 'tasks/tasks_page.dart';
 import 'activities/activities_page.dart';
+import 'projects/project_detail_page.dart';
+import 'tasks/task_detail_page.dart';
+import 'activities/activity_detail_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -277,76 +280,86 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         final project = _projects[index];
         debugPrint('Building card for project: ${project.name}');
-        return Card(
-          margin: const EdgeInsets.only(right: 16),
-          child: Container(
-            width: 300,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        project.name,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => _editProject(project),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProjectDetailPage(project: project),
+              ),
+            );
+          },
+          child: Card(
+            margin: const EdgeInsets.only(right: 16),
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          project.name,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(Icons.delete,
-                              size: 20, color: Colors.red),
-                          onPressed: () => _deleteProject(project),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  project.description ?? 'No description',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Status: ${project.status}',
-                        style: TextStyle(
-                          color: _getStatusColor(project.status),
-                        ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        'Instruments: ${project.requiredInstruments.length}',
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _editProject(project),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: const Icon(Icons.delete,
+                                size: 20, color: Colors.red),
+                            onPressed: () => _deleteProject(project),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    project.description ?? 'No description',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Status: ${project.status}',
+                          style: TextStyle(
+                            color: _getStatusColor(project.status),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          'Instruments: ${project.requiredInstruments.length}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -366,84 +379,94 @@ class _HomeScreenState extends State<HomeScreen> {
       itemCount: _tasks.length,
       itemBuilder: (context, index) {
         final task = _tasks[index];
-        return Card(
-          margin: const EdgeInsets.only(right: 16),
-          child: Container(
-            width: 300,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        task.name,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => _editTask(task),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TaskDetailPage(task: task),
+              ),
+            );
+          },
+          child: Card(
+            margin: const EdgeInsets.only(right: 16),
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          task.name,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(Icons.delete,
-                              size: 20, color: Colors.red),
-                          onPressed: () => _deleteTask(task),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  task.description ?? 'No description',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Status: ${task.status}',
-                        style: TextStyle(
-                          color: _getStatusColor(task.status),
-                        ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        'Project: ${_projects.firstWhere((p) => p.projectId == task.projectId, orElse: () => Project(
-                              projectId: '',
-                              name: 'Unknown',
-                              createdAt: DateTime.now().toIso8601String(),
-                              updatedAt: DateTime.now().toIso8601String(),
-                              createdBy: '',
-                              status: 'UNKNOWN',
-                              requiredInstruments: [],
-                            )).name}',
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _editTask(task),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: const Icon(Icons.delete,
+                                size: 20, color: Colors.red),
+                            onPressed: () => _deleteTask(task),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    task.description ?? 'No description',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Status: ${task.status}',
+                          style: TextStyle(
+                            color: _getStatusColor(task.status),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          'Project: ${_projects.firstWhere((p) => p.projectId == task.projectId, orElse: () => Project(
+                                projectId: '',
+                                name: 'Unknown',
+                                createdAt: DateTime.now().toIso8601String(),
+                                updatedAt: DateTime.now().toIso8601String(),
+                                createdBy: '',
+                                status: 'UNKNOWN',
+                                requiredInstruments: [],
+                              )).name}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -476,76 +499,86 @@ class _HomeScreenState extends State<HomeScreen> {
             requiredInstruments: [],
           ),
         );
-        return Card(
-          margin: const EdgeInsets.only(right: 16),
-          child: Container(
-            width: 300,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        activity.name,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => _editActivity(activity),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ActivityDetailPage(activity: activity),
+              ),
+            );
+          },
+          child: Card(
+            margin: const EdgeInsets.only(right: 16),
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          activity.name,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(Icons.delete,
-                              size: 20, color: Colors.red),
-                          onPressed: () => _deleteActivity(activity),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  activity.description ?? 'No description',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Status: ${activity.status}',
-                        style: TextStyle(
-                          color: _getStatusColor(activity.status),
-                        ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        'Task: ${task.name}',
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _editActivity(activity),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: const Icon(Icons.delete,
+                                size: 20, color: Colors.red),
+                            onPressed: () => _deleteActivity(activity),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    activity.description ?? 'No description',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Status: ${activity.status}',
+                          style: TextStyle(
+                            color: _getStatusColor(activity.status),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          'Task: ${task.name}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
