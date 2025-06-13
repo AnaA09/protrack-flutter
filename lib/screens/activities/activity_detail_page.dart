@@ -258,12 +258,16 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                                 Icon(Icons.access_time,
                                     color: Colors.grey[600], size: 20),
                                 const SizedBox(width: 8),
-                                Text(
-                                  _calculateDuration(widget.activity.startTime!,
-                                      widget.activity.endTime!),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                                Expanded(
+                                  child: Text(
+                                    _calculateDuration(
+                                        widget.activity.startTime!,
+                                        widget.activity.endTime!),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -301,7 +305,12 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                                     Icon(Icons.build,
                                         color: Colors.grey[600], size: 16),
                                     const SizedBox(width: 8),
-                                    Text(instrument),
+                                    Expanded(
+                                      child: Text(
+                                        instrument,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -359,6 +368,7 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
             child: Text(
               value,
               style: const TextStyle(fontWeight: FontWeight.w400),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:flutter/services.dart';
+import 'config/theme.dart';
 import 'routes/app_routes.dart';
 import 'services/cognito_service.dart';
 import 'services/user_metadata_service.dart';
@@ -107,17 +107,7 @@ class _ProTrackAppState extends State<ProTrackApp> {
       child: MaterialApp(
         title: 'ProTrack',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1E88E5),
-            primary: const Color(0xFF1E88E5),
-            secondary: const Color(0xFF03A9F4),
-            tertiary: const Color(0xFF00BCD4),
-            background: Colors.white,
-          ),
-          textTheme: GoogleFonts.poppinsTextTheme(),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.lightTheme,
         initialRoute: _initialRoute,
         routes: AppRoutes.getRoutes(),
       ),
