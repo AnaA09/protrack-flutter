@@ -214,9 +214,9 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       color: Colors.blue),
                 ),
                 const SizedBox(height: 4),
-<<<<<<< HEAD
                 ..._upcomingBookings.map((booking) {
-                  print('DEBUG: booking.userId = \\${booking.userId}, _currentUserId = \\${_currentUserId}');
+                  // Debug print for userId matching (optional, remove if not needed)
+                  // print('DEBUG: booking.userId = \\${booking.userId}, _currentUserId = \\${_currentUserId}');
                   return Card(
                     color: Colors.blue[50],
                     margin: const EdgeInsets.only(bottom: 8),
@@ -225,29 +225,12 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('From: \\${booking.startDate}'),
-                          Text('To: \\${booking.endDate}'),
+                          Text('From: \\${booking.formattedStartDateTime}'),
+                          Text('To: \\${booking.formattedEndDateTime}'),
                           Text('Status: \\${booking.status}'),
                           if (booking.notes.isNotEmpty)
                             Text('Notes: \\${booking.notes}'),
                         ],
-=======
-                ..._upcomingBookings.map((booking) => Card(
-                      color: Colors.blue[50],
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text('Purpose: ${booking.purpose}'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('From: ${booking.formattedStartDateTime}'),
-                            Text('To: ${booking.formattedEndDateTime}'),
-                            Text('Status: ${booking.status}'),
-                            if (booking.notes.isNotEmpty)
-                              Text('Notes: ${booking.notes}'),
-                          ],
-                        ),
->>>>>>> f72ade272979a0f1d812b5875bd19a89c656355f
                       ),
                       trailing: (booking.userId == _currentUserId)
                           ? IconButton(
