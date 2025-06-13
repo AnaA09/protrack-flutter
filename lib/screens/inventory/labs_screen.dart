@@ -220,11 +220,14 @@ class _LabsScreenState extends State<LabsScreen> {
                                 color: Colors.grey[600],
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                lab.location,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
+                              Expanded(
+                                child: Text(
+                                  lab.location,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
