@@ -626,7 +626,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     http_method = event.get('httpMethod')
     path = event.get('path', '')
     body = event.get('body', {})
-    user_id = event.get('requestContext', {}).get('authorizer', {}).get('userId')
+    user_id = event['requestContext']['authorizer']['claims']['sub']
     
     logger.info(f"HTTP Method: {http_method}")
     logger.info(f"Path: {path}")
@@ -735,14 +735,25 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 booking_id = body['bookingId']
             if not booking_id:
                 return create_response(400, {'error': 'Missing bookingId for deletion'})
+            
+            logger.info(f"Attempting to delete booking: {booking_id}")
+            logger.info(f"Current user ID: {user_id}")
+            
             response = bookings_table.get_item(Key={'bookingId': booking_id})
             booking = response.get('Item')
             if not booking:
                 return create_response(404, {'error': 'Booking not found'})
+            
+            logger.info(f"Found booking: {json.dumps(booking, cls=DecimalEncoder)}")
+            logger.info(f"Booking user ID: {booking.get('userId')}")
+            logger.info(f"User ID match: {booking.get('userId') == user_id}")
+            
             if booking.get('userId') != user_id:
+                logger.warning(f"Authorization failed - booking userId: {booking.get('userId')}, current userId: {user_id}")
                 return create_response(403, {'error': 'You are not authorized to cancel this booking.'})
+            
             bookings_table.delete_item(Key={'bookingId': booking_id})
-            logger.info(f"Deleted booking: {booking_id}")
+            logger.info(f"Successfully deleted booking: {booking_id}")
             return create_response(204, '')
     elif len(path_parts) == 5 and path_parts[0] == 'inventory' and path_parts[1] == 'entries' and path_parts[3] == 'availability':  # /inventory/entries/{entryId}/availability/{startDate}
         entry_id = path_parts[2]
