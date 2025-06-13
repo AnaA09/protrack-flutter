@@ -125,12 +125,42 @@ def create_project(user_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]
     projects_table.put_item(Item=item)
     return item
 
+def normalize_project_data(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize project data to ensure all required fields have proper defaults"""
+    if not item:
+        return item
+    
+    # Ensure all required fields have proper defaults
+    if 'status' not in item or item['status'] is None:
+        item['status'] = 'OPEN'
+    
+    if 'requiredInstruments' not in item:
+        item['requiredInstruments'] = []
+    
+    if 'tags' not in item:
+        item['tags'] = []
+    
+    # Ensure string fields are never null
+    string_fields = ['name', 'description', 'priority', 'status', 'createdBy']
+    for field in string_fields:
+        if field in item and item[field] is None:
+            item[field] = ''
+    
+    return item
+
 def get_project(project_id: str) -> Dict[str, Any]:
     response = projects_table.get_item(Key={'projectId': project_id})
-    return response.get('Item', {})
+    item = response.get('Item', {})
+    return normalize_project_data(item)
 
 def update_project(project_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Updating project {project_id} with data: {project_data}")
+    
+    # First check if project exists
+    existing_project = get_project(project_id)
+    if not existing_project:
+        raise ValueError(f"Project {project_id} not found")
+    
     timestamp = datetime.utcnow().isoformat()
     update_expr = 'SET updatedAt = :ts'
     expr_attrs = {':ts': timestamp}
@@ -140,11 +170,30 @@ def update_project(project_id: str, project_data: Dict[str, Any]) -> Dict[str, A
     system_fields = {'updatedAt', 'createdAt', 'projectId', 'createdBy'}
     filtered_data = {k: v for k, v in project_data.items() if k not in system_fields}
     
+    # Ensure required fields have default values if missing
+    if 'status' not in filtered_data and 'status' not in existing_project:
+        filtered_data['status'] = 'OPEN'
+    
+    if 'requiredInstruments' not in filtered_data and 'requiredInstruments' not in existing_project:
+        filtered_data['requiredInstruments'] = []
+    
+    if 'tags' not in filtered_data and 'tags' not in existing_project:
+        filtered_data['tags'] = []
+    
+    # Ensure string fields are not null
+    string_fields = ['name', 'description', 'priority', 'status']
+    for field in string_fields:
+        if field in filtered_data and filtered_data[field] is None:
+            filtered_data[field] = ''
+    
     for key, value in filtered_data.items():
         update_expr += f', #{key} = :{key}'
         expr_attrs[f':{key}'] = value
         expr_names[f'#{key}'] = key
     
+    print(f"Update expression: {update_expr}")
+    print(f"Expression attribute values: {expr_attrs}")
+    print(f"Expression attribute names: {expr_names}")
     
     try:
         response = projects_table.update_item(
@@ -154,7 +203,16 @@ def update_project(project_id: str, project_data: Dict[str, Any]) -> Dict[str, A
             ExpressionAttributeNames=expr_names,
             ReturnValues='ALL_NEW'
         )
-        return response.get('Attributes', {})
+        updated_item = response.get('Attributes', {})
+        
+        # Ensure the returned item has all required fields with proper defaults
+        if 'createdAt' not in updated_item:
+            updated_item['createdAt'] = existing_project.get('createdAt', timestamp)
+        
+        if 'createdBy' not in updated_item:
+            updated_item['createdBy'] = existing_project.get('createdBy', '')
+        
+        return normalize_project_data(updated_item)
     except Exception as e:
         print(f"Error updating project: {str(e)}")
         raise
@@ -414,7 +472,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if http_method == 'GET':
                     # List all projects
                     response = projects_table.scan()
-                    return create_response(200, response.get('Items', []))
+                    projects = response.get('Items', [])
+                    # Normalize all project data
+                    normalized_projects = [normalize_project_data(project) for project in projects]
+                    return create_response(200, normalized_projects)
                 elif http_method == 'POST':
                     # Create new project
                     project = create_project(user_id, body)

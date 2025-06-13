@@ -640,7 +640,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # Handle different HTTP methods and paths
     if http_method == 'OPTIONS':
         return create_response(200, '')
-    elif len(path_parts) == 2 and path_parts[0] == 'labs':  # /labs
+    elif len(path_parts) == 2 and path_parts[0] == 'inventory' and path_parts[1] == 'labs':  # /inventory/labs
         if http_method == 'GET':
             labs = get_labs()
             return create_response(200, labs)
@@ -648,8 +648,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             lab_data = json.loads(body) if body else {}
             lab = create_lab(lab_data)
             return create_response(201, lab)
-    elif len(path_parts) == 3 and path_parts[0] == 'labs':  # /labs/{labId}
-        lab_id = path_parts[1]
+    elif len(path_parts) == 3 and path_parts[0] == 'inventory' and path_parts[1] == 'labs':  # /inventory/labs/{labId}
+        lab_id = path_parts[2]
         if http_method == 'GET':
             lab = get_lab(lab_id)
             if lab:
@@ -663,8 +663,17 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         elif http_method == 'DELETE':
             delete_lab(lab_id)
             return create_response(204, '')
-    elif len(path_parts) == 3 and path_parts[0] == 'categories':  # /categories/{categoryId}
-        category_id = path_parts[1]
+    elif len(path_parts) == 4 and path_parts[0] == 'inventory' and path_parts[1] == 'labs' and path_parts[3] == 'categories':  # /inventory/labs/{labId}/categories
+        lab_id = path_parts[2]
+        if http_method == 'GET':
+            categories = get_categories_by_lab(lab_id)
+            return create_response(200, categories)
+        elif http_method == 'POST':
+            category_data = json.loads(body) if body else {}
+            category = create_category(lab_id, category_data)
+            return create_response(201, category)
+    elif len(path_parts) == 3 and path_parts[0] == 'inventory' and path_parts[1] == 'categories':  # /inventory/categories/{categoryId}
+        category_id = path_parts[2]
         if http_method == 'GET':
             category = instruments_table.get_item(Key={'instrumentId': category_id})
             if category and category.get('Item'):
@@ -678,6 +687,37 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         elif http_method == 'DELETE':
             delete_category(category_id)
             return create_response(204, '')
+    elif len(path_parts) == 4 and path_parts[0] == 'inventory' and path_parts[1] == 'categories' and path_parts[3] == 'entries':  # /inventory/categories/{categoryId}/entries
+        category_id = path_parts[2]
+        if http_method == 'GET':
+            entries = get_entries_by_category(category_id)
+            return create_response(200, entries)
+        elif http_method == 'POST':
+            entry_data = json.loads(body) if body else {}
+            entry = create_entry(category_id, entry_data)
+            return create_response(201, entry)
+    elif len(path_parts) == 3 and path_parts[0] == 'inventory' and path_parts[1] == 'entries':  # /inventory/entries/{entryId}
+        entry_id = path_parts[2]
+        if http_method == 'GET':
+            entry = get_entry(entry_id)
+            if entry:
+                return create_response(200, entry)
+            else:
+                return create_response(404, {'error': 'Entry not found'})
+        elif http_method == 'PUT':
+            entry_data = json.loads(body) if body else {}
+            entry = update_entry(entry_id, entry_data)
+            return create_response(200, entry)
+        elif http_method == 'DELETE':
+            delete_entry(entry_id)
+            return create_response(204, '')
+    elif len(path_parts) == 4 and path_parts[0] == 'inventory' and path_parts[1] == 'entries' and path_parts[3] == 'book':  # /inventory/entries/{entryId}/book
+        entry_id = path_parts[2]
+        if http_method == 'POST':
+            booking_data = json.loads(body) if body else {}
+            booking_data['userId'] = user_id  # Add user ID from auth context
+            booking = create_booking(entry_id, booking_data)
+            return create_response(201, booking)
     elif len(path_parts) == 4 and path_parts[0] == 'inventory' and path_parts[1] == 'entries' and path_parts[3] == 'bookings':  # /inventory/entries/{entryId}/bookings
         entry_id = path_parts[2]
         logger.info(f"Processing /inventory/entries/{entry_id}/bookings endpoint")
@@ -704,5 +744,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             bookings_table.delete_item(Key={'bookingId': booking_id})
             logger.info(f"Deleted booking: {booking_id}")
             return create_response(204, '')
+    elif len(path_parts) == 5 and path_parts[0] == 'inventory' and path_parts[1] == 'entries' and path_parts[3] == 'availability':  # /inventory/entries/{entryId}/availability/{startDate}
+        entry_id = path_parts[2]
+        start_date = path_parts[4]
+        if http_method == 'GET':
+            end_date = event.get('queryStringParameters', {}).get('end_date') if event.get('queryStringParameters') else None
+            if not end_date:
+                return create_response(400, {'error': 'Missing end_date parameter'})
+            available_dates = get_available_dates(entry_id, start_date, end_date)
+            return create_response(200, {'availableDates': available_dates})
 
     return create_response(404, {'error': 'Not Found'})

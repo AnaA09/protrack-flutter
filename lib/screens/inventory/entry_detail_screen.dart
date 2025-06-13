@@ -105,6 +105,30 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
     }
   }
 
+  Future<bool?> _showCancelConfirmationDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Cancel Booking'),
+          content: const Text(
+              'Are you sure you want to cancel this booking? This action cannot be undone.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep Booking'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Cancel Booking'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,10 +219,58 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                             'From: ${_currentBooking!.formattedStartDateTime}'),
                         Text('To: ${_currentBooking!.formattedEndDateTime}'),
                         Text('Status: ${_currentBooking!.status}'),
+                        if (_currentBooking!.userFullName != null &&
+                            _currentBooking!.userFullName!.isNotEmpty)
+                          Text('Booked by: ${_currentBooking!.userFullName}')
+                        else if (_currentBooking!.userId == _currentUserId)
+                          const Text('Booked by: You',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                         if (_currentBooking!.notes.isNotEmpty)
                           Text('Notes: ${_currentBooking!.notes}'),
                       ],
                     ),
+                    trailing: (_currentBooking!.userId == _currentUserId)
+                        ? IconButton(
+                            icon: Icon(Icons.cancel, color: Colors.red),
+                            tooltip: 'Cancel Booking',
+                            onPressed: () async {
+                              final confirmed =
+                                  await _showCancelConfirmationDialog();
+                              if (confirmed == true) {
+                                try {
+                                  final inventoryService =
+                                      Provider.of<InventoryService>(context,
+                                          listen: false);
+                                  await inventoryService.deleteBooking(
+                                      widget.entry.entryId,
+                                      _currentBooking!.bookingId);
+                                  _loadBookings();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Booking cancelled successfully'),
+                                        backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 3),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            'Failed to cancel booking: $e'),
+                                        backgroundColor: Colors.red,
+                                        duration: const Duration(seconds: 5),
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -221,15 +293,21 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     color: Colors.blue[50],
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      title: Text('Purpose: \\${booking.purpose}'),
+                      title: Text('Purpose: ${booking.purpose}'),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('From: \\${booking.formattedStartDateTime}'),
-                          Text('To: \\${booking.formattedEndDateTime}'),
-                          Text('Status: \\${booking.status}'),
+                          Text('From: ${booking.formattedStartDateTime}'),
+                          Text('To: ${booking.formattedEndDateTime}'),
+                          Text('Status: ${booking.status}'),
+                          if (booking.userFullName != null &&
+                              booking.userFullName!.isNotEmpty)
+                            Text('Booked by: ${booking.userFullName}')
+                          else if (booking.userId == _currentUserId)
+                            const Text('Booked by: You',
+                                style: TextStyle(fontWeight: FontWeight.w500)),
                           if (booking.notes.isNotEmpty)
-                            Text('Notes: \\${booking.notes}'),
+                            Text('Notes: ${booking.notes}'),
                         ],
                       ),
                       trailing: (booking.userId == _currentUserId)
@@ -237,9 +315,42 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                               icon: Icon(Icons.cancel, color: Colors.red),
                               tooltip: 'Cancel Booking',
                               onPressed: () async {
-                                final inventoryService = Provider.of<InventoryService>(context, listen: false);
-                                await inventoryService.deleteBooking(widget.entry.entryId, booking.bookingId);
-                                _loadBookings();
+                                final confirmed =
+                                    await _showCancelConfirmationDialog();
+                                if (confirmed == true) {
+                                  try {
+                                    final inventoryService =
+                                        Provider.of<InventoryService>(context,
+                                            listen: false);
+                                    await inventoryService.deleteBooking(
+                                        widget.entry.entryId,
+                                        booking.bookingId);
+                                    _loadBookings();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Booking cancelled successfully'),
+                                          backgroundColor: Colors.green,
+                                          duration: Duration(seconds: 3),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Failed to cancel booking: $e'),
+                                          backgroundColor: Colors.red,
+                                          duration: const Duration(seconds: 5),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
                               },
                             )
                           : null,
@@ -270,6 +381,13 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                             Text('From: ${booking.formattedStartDateTime}'),
                             Text('To: ${booking.formattedEndDateTime}'),
                             Text('Status: ${booking.status}'),
+                            if (booking.userFullName != null &&
+                                booking.userFullName!.isNotEmpty)
+                              Text('Booked by: ${booking.userFullName}')
+                            else if (booking.userId == _currentUserId)
+                              const Text('Booked by: You',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w500)),
                             if (booking.notes.isNotEmpty)
                               Text('Notes: ${booking.notes}'),
                           ],
