@@ -130,6 +130,7 @@ def get_project(project_id: str) -> Dict[str, Any]:
     return response.get('Item', {})
 
 def update_project(project_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]:
+    print(f"Updating project {project_id} with data: {project_data}")
     timestamp = datetime.utcnow().isoformat()
     update_expr = 'SET updatedAt = :ts'
     expr_attrs = {':ts': timestamp}
@@ -144,18 +145,24 @@ def update_project(project_id: str, project_data: Dict[str, Any]) -> Dict[str, A
         expr_attrs[f':{key}'] = value
         expr_names[f'#{key}'] = key
     
-    response = projects_table.update_item(
-        Key={'projectId': project_id},
-        UpdateExpression=update_expr,
-        ExpressionAttributeValues=expr_attrs,
-        ExpressionAttributeNames=expr_names,
-        ReturnValues='ALL_NEW'
-    )
-    return response.get('Attributes', {})
+    
+    try:
+        response = projects_table.update_item(
+            Key={'projectId': project_id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeValues=expr_attrs,
+            ExpressionAttributeNames=expr_names,
+            ReturnValues='ALL_NEW'
+        )
+        return response.get('Attributes', {})
+    except Exception as e:
+        print(f"Error updating project: {str(e)}")
+        raise
 
 def delete_project(project_id: str) -> None:
     # First, delete all tasks and activities associated with the project
     tasks = tasks_table.query(
+        IndexName='ProjectIdIndex',
         KeyConditionExpression='projectId = :pid',
         ExpressionAttributeValues={':pid': project_id}
     )
@@ -370,7 +377,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path_parts = path.strip('/').split('/')
         
         # Parse request body if present
-        body = json.loads(event['body']) if event.get('body') else {}
+        request_body = event.get('body') or '{}'
+        body = json.loads(request_body)
         
         # Route the request based on the path
         if path_parts[0] == 'instruments':
