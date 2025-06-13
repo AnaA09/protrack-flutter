@@ -20,7 +20,6 @@ class CognitoService extends ChangeNotifier {
   String? _name;
   String? _email;
   String? _userId;
-  String? _accessToken;
   UserMetadataService? _userMetadataService;
 
   void setUserMetadataService(UserMetadataService service) {
@@ -247,12 +246,12 @@ class CognitoService extends ChangeNotifier {
         );
         _isSignedIn = session.isSignedIn;
 
-        // Get and store the access token
+        // Get and store the Cognito user sub (UUID) as userId
         final attributes = await Amplify.Auth.fetchUserAttributes();
-        _accessToken = attributes
+        _userId = attributes
             .firstWhere(
               (attr) => attr.userAttributeKey == CognitoUserAttributeKey.sub,
-              orElse: () => throw Exception('No access token found'),
+              orElse: () => throw Exception('No Cognito user sub found'),
             )
             .value;
 
@@ -356,4 +355,6 @@ class CognitoService extends ChangeNotifier {
       return null;
     }
   }
+
+  String? get userId => _userId;
 }

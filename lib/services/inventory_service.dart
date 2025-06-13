@@ -203,6 +203,16 @@ class InventoryService {
     }
   }
 
+  Future<void> deleteBooking(String entryId, String bookingId) async {
+    try {
+      // Send bookingId as a query parameter for DELETE
+      await _apiService.delete('/inventory/entries/$entryId/bookings?bookingId=$bookingId');
+    } catch (e) {
+      debugPrint('Error deleting booking: $e');
+      rethrow;
+    }
+  }
+
   // Helper methods for filtering categories
   List<Category> getInstrumentCategories(List<Category> categories) {
     return categories

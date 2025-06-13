@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import '../../models/entry.dart';
 import '../../models/booking.dart';
 import '../../services/inventory_service.dart';
+import '../../services/cognito_service.dart';
 
 class EntryDetailScreen extends StatefulWidget {
   final Entry entry;
@@ -18,11 +19,20 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
   List<Booking> _bookings = [];
   bool _isLoading = true;
   String? _error;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
+    _loadCurrentUserId();
     _loadBookings();
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    final cognitoService = Provider.of<CognitoService>(context, listen: false);
+    setState(() {
+      _currentUserId = cognitoService.userId;
+    });
   }
 
   Future<void> _loadBookings() async {
@@ -202,23 +212,37 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       color: Colors.blue),
                 ),
                 const SizedBox(height: 4),
-                ..._upcomingBookings.map((booking) => Card(
-                      color: Colors.blue[50],
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text('Purpose: ${booking.purpose}'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('From: ${booking.startDate}'),
-                            Text('To: ${booking.endDate}'),
-                            Text('Status: ${booking.status}'),
-                            if (booking.notes.isNotEmpty)
-                              Text('Notes: ${booking.notes}'),
-                          ],
-                        ),
+                ..._upcomingBookings.map((booking) {
+                  print('DEBUG: booking.userId = \\${booking.userId}, _currentUserId = \\${_currentUserId}');
+                  return Card(
+                    color: Colors.blue[50],
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      title: Text('Purpose: \\${booking.purpose}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('From: \\${booking.startDate}'),
+                          Text('To: \\${booking.endDate}'),
+                          Text('Status: \\${booking.status}'),
+                          if (booking.notes.isNotEmpty)
+                            Text('Notes: \\${booking.notes}'),
+                        ],
                       ),
-                    )),
+                      trailing: (booking.userId == _currentUserId)
+                          ? IconButton(
+                              icon: Icon(Icons.cancel, color: Colors.red),
+                              tooltip: 'Cancel Booking',
+                              onPressed: () async {
+                                final inventoryService = Provider.of<InventoryService>(context, listen: false);
+                                await inventoryService.deleteBooking(widget.entry.entryId, booking.bookingId);
+                                _loadBookings();
+                              },
+                            )
+                          : null,
+                    ),
+                  );
+                }),
                 const SizedBox(height: 16),
               ],
 

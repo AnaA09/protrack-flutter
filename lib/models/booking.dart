@@ -16,6 +16,7 @@ class Booking {
   final String status; // CONFIRMED, CANCELLED, COMPLETED
   final String createdAt;
   final String updatedAt;
+  final String? userFullName;
 
   Booking({
     required this.bookingId,
@@ -30,6 +31,7 @@ class Booking {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.userFullName,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) =>

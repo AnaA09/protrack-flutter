@@ -621,185 +621,88 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     logger.info("=== Lambda function started ===")
     logger.info(f"Event: {json.dumps(event)}")
     logger.info(f"Event keys: {list(event.keys())}")
-    logger.info(f"Environment variables: INSTRUMENTS_TABLE={os.environ.get('INSTRUMENTS_TABLE')}, BOOKINGS_TABLE={os.environ.get('BOOKINGS_TABLE')}")
+    logger.info(f"Environment variables: INSTRUMENTS_TABLE={os.environ.get('INSTRUMENTS_TABLE')}")
     
-    try:
-        # Safely get HTTP method from event
-        http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method')
-        if not http_method:
-            logger.error("No httpMethod found in event")
-            logger.error(f"Event structure: {json.dumps(event, indent=2)}")
-            return create_response(400, {'error': 'Missing httpMethod in event'})
-        
-        logger.info(f"HTTP Method: {http_method}")
-        
-        # Handle OPTIONS request for CORS preflight
-        if http_method == 'OPTIONS':
-            logger.info("Handling OPTIONS request")
-            return create_response(200, '')
+    http_method = event.get('httpMethod')
+    path = event.get('path', '')
+    body = event.get('body', {})
+    user_id = event.get('requestContext', {}).get('authorizer', {}).get('userId')
+    
+    logger.info(f"HTTP Method: {http_method}")
+    logger.info(f"Path: {path}")
+    logger.info(f"Body: {json.dumps(body)}")
+    logger.info(f"User ID: {user_id}")
+    
+    # Split the path by '/' and filter out empty segments
+    path_parts = list(filter(bool, path.split('/')))
+    logger.info(f"Path parts: {path_parts}")
+    
+    # Handle different HTTP methods and paths
+    if http_method == 'OPTIONS':
+        return create_response(200, '')
+    elif len(path_parts) == 2 and path_parts[0] == 'labs':  # /labs
+        if http_method == 'GET':
+            labs = get_labs()
+            return create_response(200, labs)
+        elif http_method == 'POST':
+            lab_data = json.loads(body) if body else {}
+            lab = create_lab(lab_data)
+            return create_response(201, lab)
+    elif len(path_parts) == 3 and path_parts[0] == 'labs':  # /labs/{labId}
+        lab_id = path_parts[1]
+        if http_method == 'GET':
+            lab = get_lab(lab_id)
+            if lab:
+                return create_response(200, lab)
+            else:
+                return create_response(404, {'error': 'Lab not found'})
+        elif http_method == 'PUT':
+            lab_data = json.loads(body) if body else {}
+            lab = update_lab(lab_id, lab_data)
+            return create_response(200, lab)
+        elif http_method == 'DELETE':
+            delete_lab(lab_id)
+            return create_response(204, '')
+    elif len(path_parts) == 3 and path_parts[0] == 'categories':  # /categories/{categoryId}
+        category_id = path_parts[1]
+        if http_method == 'GET':
+            category = instruments_table.get_item(Key={'instrumentId': category_id})
+            if category and category.get('Item'):
+                return create_response(200, category['Item'])
+            else:
+                return create_response(404, {'error': 'Category not found'})
+        elif http_method == 'PUT':
+            category_data = json.loads(body) if body else {}
+            category = update_category(category_id, category_data)
+            return create_response(200, category)
+        elif http_method == 'DELETE':
+            delete_category(category_id)
+            return create_response(204, '')
+    elif len(path_parts) == 4 and path_parts[0] == 'inventory' and path_parts[1] == 'entries' and path_parts[3] == 'bookings':  # /inventory/entries/{entryId}/bookings
+        entry_id = path_parts[2]
+        logger.info(f"Processing /inventory/entries/{entry_id}/bookings endpoint")
+        if http_method == 'GET':
+            logger.info(f"Getting bookings for entry: {entry_id}")
+            bookings = get_bookings_by_entry(entry_id)
+            logger.info(f"Found {len(bookings)} bookings")
+            return create_response(200, bookings)
+        elif http_method == 'DELETE':
+            # bookingId can be in query params or body
+            booking_id = None
+            if event.get('queryStringParameters') and event['queryStringParameters'].get('bookingId'):
+                booking_id = event['queryStringParameters']['bookingId']
+            elif body and body.get('bookingId'):
+                booking_id = body['bookingId']
+            if not booking_id:
+                return create_response(400, {'error': 'Missing bookingId for deletion'})
+            response = bookings_table.get_item(Key={'bookingId': booking_id})
+            booking = response.get('Item')
+            if not booking:
+                return create_response(404, {'error': 'Booking not found'})
+            if booking.get('userId') != user_id:
+                return create_response(403, {'error': 'You are not authorized to cancel this booking.'})
+            bookings_table.delete_item(Key={'bookingId': booking_id})
+            logger.info(f"Deleted booking: {booking_id}")
+            return create_response(204, '')
 
-        # Safely get path from event
-        path = event.get('path') or event.get('requestContext', {}).get('http', {}).get('path')
-        if not path:
-            logger.error("No path found in event")
-            return create_response(400, {'error': 'Missing path in event'})
-        
-        logger.info(f"Path: {path}")
-        path_parts = path.strip('/').split('/')
-        logger.info(f"Path parts: {path_parts}")
-
-        # Get user ID from Cognito authorizer (only for non-OPTIONS requests)
-        user_id = None
-        if http_method != 'OPTIONS':
-            try:
-                logger.info("Extracting user ID from Cognito authorizer")
-                user_id = event['requestContext']['authorizer']['claims']['sub']
-                logger.info(f"User ID: {user_id}")
-            except KeyError as e:
-                logger.warning(f"Could not extract user ID: {e}")
-                # For some endpoints, user ID might not be required
-        
-        # Parse request body if present
-        body = json.loads(event['body']) if event.get('body') else {}
-        logger.info(f"Request body: {json.dumps(body)}")
-        
-        # Route the request based on the path
-        if path_parts[0] == 'inventory':
-            logger.info("Processing inventory endpoint")
-            
-            # Labs endpoints
-            if len(path_parts) == 2 and path_parts[1] == 'labs':  # /inventory/labs
-                logger.info("Processing /inventory/labs endpoint")
-                if http_method == 'GET':
-                    logger.info("Getting all labs")
-                    labs = get_labs()
-                    logger.info(f"Returning {len(labs)} labs")
-                    return create_response(200, labs)
-                elif http_method == 'POST':
-                    logger.info("Creating new lab")
-                    lab = create_lab(body)
-                    logger.info(f"Created lab: {lab.get('name')}")
-                    return create_response(201, lab)
-            
-            elif len(path_parts) == 3 and path_parts[1] == 'labs':  # /inventory/labs/{labId}
-                lab_id = path_parts[2] 
-                logger.info(f"Processing /inventory/labs/{lab_id} endpoint")
-                if http_method == 'GET':
-                    logger.info(f"Getting lab: {lab_id}")
-                    lab = get_lab(lab_id)
-                    logger.info(f"Found lab: {lab.get('name', 'Not found')}")
-                    return create_response(200, lab)
-                elif http_method == 'PUT':
-                    logger.info(f"Updating lab: {lab_id}")
-                    lab = update_lab(lab_id, body)
-                    logger.info(f"Updated lab: {lab.get('name')}")
-                    return create_response(200, lab)
-                elif http_method == 'DELETE':
-                    logger.info(f"Deleting lab: {lab_id}")
-                    delete_lab(lab_id)
-                    return create_response(204, '')
-            
-            # Categories endpoints
-            elif len(path_parts) == 4 and path_parts[1] == 'labs' and path_parts[3] == 'categories':  # /inventory/labs/{labId}/categories
-                lab_id = path_parts[2]
-                logger.info(f"Processing /inventory/labs/{lab_id}/categories endpoint")
-                if http_method == 'GET':
-                    logger.info(f"Getting categories for lab: {lab_id}")
-                    categories = get_categories_by_lab(lab_id)
-                    logger.info(f"Found {len(categories)} categories")
-                    return create_response(200, categories)
-                elif http_method == 'POST':
-                    logger.info(f"Creating category for lab: {lab_id}")
-                    body['labId'] = lab_id
-                    category = create_category(lab_id, body)
-                    logger.info(f"Created category: {category.get('name')}")
-                    return create_response(201, category)
-            
-            elif len(path_parts) == 3 and path_parts[1] == 'categories':  # /inventory/categories/{categoryId}
-                category_id = path_parts[2]
-                logger.info(f"Processing /inventory/categories/{category_id} endpoint")
-                if http_method == 'PUT':
-                    logger.info(f"Updating category: {category_id}")
-                    category = update_category(category_id, body)
-                    logger.info(f"Updated category: {category.get('name')}")
-                    return create_response(200, category)
-                elif http_method == 'DELETE':
-                    logger.info(f"Deleting category: {category_id}")
-                    delete_category(category_id)
-                    return create_response(204, '')
-            
-            # Entries endpoints
-            elif len(path_parts) == 4 and path_parts[1] == 'categories' and path_parts[3] == 'entries':  # /inventory/categories/{categoryId}/entries
-                category_id = path_parts[2]
-                logger.info(f"Processing /inventory/categories/{category_id}/entries endpoint")
-                if http_method == 'GET':
-                    logger.info(f"Getting entries for category: {category_id}")
-                    entries = get_entries_by_category(category_id)
-                    logger.info(f"Found {len(entries)} entries")
-                    return create_response(200, entries)
-                elif http_method == 'POST':
-                    logger.info(f"Creating entry for category: {category_id}")
-                    entry = create_entry(category_id, body)
-                    logger.info(f"Created entry: {entry.get('name')}")
-                    return create_response(201, entry)
-            
-            elif len(path_parts) == 3 and path_parts[1] == 'entries':  # /inventory/entries/{entryId}
-                entry_id = path_parts[2]
-                logger.info(f"Processing /inventory/entries/{entry_id} endpoint")
-                if http_method == 'GET':
-                    logger.info(f"Getting entry: {entry_id}")
-                    entry = get_entry(entry_id)
-                    logger.info(f"Found entry: {entry.get('name', 'Not found')}")
-                    return create_response(200, entry)
-                elif http_method == 'PUT':
-                    logger.info(f"Updating entry: {entry_id}")
-                    entry = update_entry(entry_id, body)
-                    logger.info(f"Updated entry: {entry.get('name')}")
-                    return create_response(200, entry)
-                elif http_method == 'DELETE':
-                    logger.info(f"Deleting entry: {entry_id}")
-                    delete_entry(entry_id)
-                    return create_response(204, '')
-            
-            # Booking endpoints
-            elif len(path_parts) == 4 and path_parts[1] == 'entries' and path_parts[3] == 'book':  # /inventory/entries/{entryId}/book
-                entry_id = path_parts[2]
-                logger.info(f"Processing /inventory/entries/{entry_id}/book endpoint")
-                if http_method == 'POST':
-                    logger.info(f"Creating booking for entry: {entry_id}")
-                    body['userId'] = user_id
-                    booking = create_booking(entry_id, body)
-                    logger.info(f"Created booking: {booking.get('bookingId')}")
-                    return create_response(201, booking)
-            
-            elif len(path_parts) == 5 and path_parts[1] == 'entries' and path_parts[3] == 'availability':  # /inventory/entries/{entryId}/availability/{start_date}/{end_date}
-                entry_id = path_parts[2]
-                start_date = path_parts[4]
-                end_date = event['queryStringParameters'].get('end_date') if event.get('queryStringParameters') else None
-                logger.info(f"Processing availability check for entry: {entry_id}, dates: {start_date} to {end_date}")
-                
-                if http_method == 'GET' and end_date:
-                    available_dates = get_available_dates(entry_id, start_date, end_date)
-                    logger.info(f"Found {len(available_dates)} available dates")
-                    return create_response(200, {'availableDates': available_dates})
-            
-            elif len(path_parts) == 4 and path_parts[1] == 'entries' and path_parts[3] == 'bookings':  # /inventory/entries/{entryId}/bookings
-                entry_id = path_parts[2]
-                logger.info(f"Processing /inventory/entries/{entry_id}/bookings endpoint")
-                if http_method == 'GET':
-                    logger.info(f"Getting bookings for entry: {entry_id}")
-                    bookings = get_bookings_by_entry(entry_id)
-                    logger.info(f"Found {len(bookings)} bookings")
-                    return create_response(200, bookings)
-        
-        logger.warning(f"Invalid path requested: {path}")
-        return create_response(400, {'error': 'Invalid path'})
-            
-    except Exception as e:
-        logger.error(f"=== Lambda function error ===")
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error message: {str(e)}")
-        logger.error(f"Event that caused error: {json.dumps(event)}")
-        import traceback
-        logger.error(f"Full traceback: {traceback.format_exc()}")
-        return create_response(500, {'error': str(e), 'type': type(e).__name__}) 
+    return create_response(404, {'error': 'Not Found'})
