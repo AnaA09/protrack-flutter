@@ -7,6 +7,7 @@ import '../../services/task_service.dart';
 import '../../services/project_service.dart';
 import '../../services/api_service.dart';
 import '../../services/cognito_service.dart';
+import '../../services/ai_report_service.dart';
 
 class ActivityDetailPage extends StatefulWidget {
   final Activity activity;
@@ -24,6 +25,10 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
   Task? _task;
   Project? _project;
   bool _isLoading = true;
+  bool _isEditing = false;
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   @override
   void initState() {
@@ -67,6 +72,60 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
+    }
+  }
+
+  void _toggleEditMode() {
+    setState(() {
+      _isEditing = !_isEditing;
+      if (!_isEditing) {
+        // Reset form when exiting edit mode
+        _formKey.currentState?.reset();
+        _nameController.text = widget.activity.name;
+        _descriptionController.text = widget.activity.description ?? '';
+      }
+    });
+  }
+
+  Future<void> _generateActivitySummary() async {
+    try {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final aiReportService = AiReportService(apiService);
+      
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating AI summary...')),
+      );
+      
+      // Call the AI report service
+      await aiReportService.generateActivitySummary(
+        widget.activity.projectId,
+        widget.activity.taskId,
+        widget.activity.activityId,
+      );
+      
+      // Show "disabled" popup
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('AI Summary Generation'),
+            content: const Text('This API is currently disabled'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -180,8 +239,21 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                                 ],
                               ],
                             ),
+                          ),                          const SizedBox(height: 16),
+
+                          // AI Summary Generation Button
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.auto_awesome), // AI icon
+                              label: const Text('Generate Summary'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).primaryColor,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: _generateActivitySummary,
+                            ),
                           ),
-                          const SizedBox(height: 16),
 
                           if (widget.activity.description != null &&
                               widget.activity.description!.isNotEmpty) ...[

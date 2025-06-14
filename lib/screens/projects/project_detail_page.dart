@@ -5,6 +5,7 @@ import '../../models/task.dart';
 import '../../services/task_service.dart';
 import '../../services/api_service.dart';
 import '../../services/cognito_service.dart';
+import '../../services/ai_report_service.dart';
 import 'create_task_form.dart';
 import '../tasks/task_detail_page.dart';
 
@@ -82,6 +83,44 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     );
   }
 
+  Future<void> _generateProjectReport() async {
+    try {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final aiReportService = AiReportService(apiService);
+      
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Requesting AI report...')),
+      );
+      
+      // Call the AI report service
+      await aiReportService.generateProjectReport(widget.project.projectId);
+      
+      // Show "disabled" popup
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('AI Report Generation'),
+            content: const Text('This API is currently disabled'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,7 +176,20 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 16),                    // AI Report Generation Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.auto_awesome), // AI icon
+                        label: const Text('Generate Report'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: _generateProjectReport,
+                      ),
+                    ),
+                    
                     if (widget.project.description != null &&
                         widget.project.description!.isNotEmpty) ...[
                       Text(
