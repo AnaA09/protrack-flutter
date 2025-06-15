@@ -6,6 +6,7 @@ import '../../services/task_service.dart';
 import '../../services/api_service.dart';
 import '../../services/cognito_service.dart';
 import '../../services/ai_report_service.dart';
+import '../../utils/pdf_utils.dart';
 import 'create_task_form.dart';
 import '../tasks/task_detail_page.dart';
 
@@ -28,6 +29,14 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   // AI Report state variables
   String? _aiReportResponse;
   bool _isGeneratingReport = false;
+  
+  // Helper method to sanitize file names
+  String _sanitizeFileName(String input) {
+    // Replace invalid file name characters with underscores
+    return input
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+        .replaceAll(RegExp(r'\s+'), '_');
+  }
 
   @override
   void initState() {
@@ -122,18 +131,22 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       }
     }
   }
-  
-  Future<void> _downloadReportAsPdf() async {
+    Future<void> _downloadReportAsPdf() async {
     try {
-      // This is a placeholder for PDF download functionality
-      // In a real implementation, you'd need to use a PDF generation package
+      if (_aiReportResponse == null) {
+        throw Exception('No report available to download');
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Downloading report as PDF...')),
+        const SnackBar(content: Text('Preparing PDF report...')),
+      );      // Generate and download PDF
+      await PdfUtils.generateAndDownloadReport(
+        title: 'Project Report: ${widget.project.name}',
+        content: _aiReportResponse!,
+        fileName: 'project_report_${_sanitizeFileName(widget.project.name)}',
+        context: context,
       );
-      
-      // Simulate download delay
-      await Future.delayed(const Duration(seconds: 2));
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Report downloaded successfully')),

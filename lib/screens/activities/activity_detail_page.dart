@@ -8,6 +8,7 @@ import '../../services/project_service.dart';
 import '../../services/api_service.dart';
 import '../../services/cognito_service.dart';
 import '../../services/ai_report_service.dart';
+import '../../utils/pdf_utils.dart';
 
 class ActivityDetailPage extends StatefulWidget {
   final Activity activity;
@@ -29,9 +30,16 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  
-  // AI Report state variables
+    // AI Report state variables
   String? _aiReportResponse;
+  
+  // Helper method to sanitize file names
+  String _sanitizeFileName(String input) {
+    // Replace invalid file name characters with underscores
+    return input
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+        .replaceAll(RegExp(r'\s+'), '_');
+  }
   bool _isGeneratingReport = false;
 
   @override
@@ -130,17 +138,26 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
       setState(() => _isGeneratingReport = false);
     }
   }
-  
-  Future<void> _downloadReportAsPdf() async {
+    Future<void> _downloadReportAsPdf() async {
     try {
-      // This is a placeholder for PDF download functionality
-      // In a real implementation, you'd need to use a PDF generation package
+      if (_aiReportResponse == null) {
+        throw Exception('No summary available to download');
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Downloading summary as PDF...')),
+        const SnackBar(content: Text('Preparing PDF summary...')),
       );
       
-      // Simulate download delay
-      await Future.delayed(const Duration(seconds: 2));
+      // Get task and project names if available
+      final taskName = _task != null ? _task!.name : 'Unknown Task';
+      final projectName = _project != null ? _project!.name : 'Unknown Project';
+        // Generate and download PDF
+      await PdfUtils.generateAndDownloadReport(
+        title: 'Activity Summary: ${widget.activity.name}',
+        content: _aiReportResponse!,
+        fileName: 'activity_summary_${_sanitizeFileName(widget.activity.name)}',
+        context: context,
+      );
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
