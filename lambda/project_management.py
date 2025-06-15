@@ -112,6 +112,10 @@ def create_project(user_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]
         if not instrument:
             raise ValueError(f"Instrument {instrument_id} not found")
     
+    # Filter out system fields that should be server-generated
+    system_fields = {'projectId', 'createdAt', 'updatedAt', 'createdBy'}
+    filtered_data = {k: v for k, v in project_data.items() if k not in system_fields}
+    
     item = {
         'projectId': project_id,
         'createdAt': timestamp,
@@ -119,7 +123,7 @@ def create_project(user_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]
         'createdBy': user_id,
         'status': 'OPEN',
         'requiredInstruments': required_instruments,
-        **project_data
+        **filtered_data
     }
     
     projects_table.put_item(Item=item)
@@ -263,6 +267,10 @@ def create_task(project_id: str, task_data: Dict[str, Any]) -> Dict[str, Any]:
         if not instrument:
             raise ValueError(f"Instrument {instrument_id} not found")
     
+    # Filter out system fields that should be server-generated
+    system_fields = {'taskId', 'projectId', 'createdAt', 'updatedAt'}
+    filtered_data = {k: v for k, v in task_data.items() if k not in system_fields}
+    
     item = {
         'taskId': task_id,
         'projectId': project_id,
@@ -270,7 +278,7 @@ def create_task(project_id: str, task_data: Dict[str, Any]) -> Dict[str, Any]:
         'updatedAt': timestamp,
         'status': 'OPEN',
         'requiredInstruments': required_instruments,
-        **task_data
+        **filtered_data
     }
     
     tasks_table.put_item(Item=item)
@@ -349,6 +357,10 @@ def create_activity(task_id: str, project_id: str, activity_data: Dict[str, Any]
         if instrument['status'] != 'AVAILABLE':
             raise ValueError(f"Instrument {instrument_id} is not available")
     
+    # Filter out system fields that should be server-generated
+    system_fields = {'activityId', 'taskId', 'projectId', 'createdAt', 'updatedAt'}
+    filtered_data = {k: v for k, v in activity_data.items() if k not in system_fields}
+    
     item = {
         'activityId': activity_id,
         'taskId': task_id,
@@ -357,7 +369,7 @@ def create_activity(task_id: str, project_id: str, activity_data: Dict[str, Any]
         'updatedAt': timestamp,
         'status': 'IN_PROGRESS',
         'usedInstruments': used_instruments,
-        **activity_data
+        **filtered_data
     }
     
     # Update instrument status to IN_USE
