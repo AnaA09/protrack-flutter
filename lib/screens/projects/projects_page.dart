@@ -16,12 +16,20 @@ class ProjectsPage extends StatefulWidget {
 
 class _ProjectsPageState extends State<ProjectsPage> {
   List<Project> _projects = [];
+  List<Project> _filteredProjects = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadProjects();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProjects() async {
@@ -43,6 +51,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
 
       setState(() {
         _projects = projects;
+        _filteredProjects = projects; // Initialize filtered projects
         _isLoading = false;
       });
     } catch (e) {
@@ -59,6 +68,23 @@ class _ProjectsPageState extends State<ProjectsPage> {
       }
     }
   }
+
+  void _filterProjects(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProjects = List.from(_projects);
+      } else {
+        _filteredProjects = _projects
+            .where((project) =>
+                project.name.toLowerCase().contains(query.toLowerCase()) ||
+                (project.description ?? '')
+                    .toLowerCase()
+                    .contains(query.toLowerCase()))
+            .toList();
+      }
+    });
+  }
+
   void _navigateToProjectDetail(Project project) {
     Navigator.push(
       context,
@@ -98,22 +124,54 @@ class _ProjectsPageState extends State<ProjectsPage> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadProjects,
-              child: _projects.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No projects found.\nCreate a new project to get started.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _filterProjects,
+                      decoration: InputDecoration(
+                        hintText: 'Search projects...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 2,
+                          ),
+                        ),
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _projects.length,
-                      itemBuilder: (context, index) {
-                        final project = _projects[index];
-                        return _buildProjectCard(project);
-                      },
                     ),
+                  ),
+                  Expanded(
+                    child: _filteredProjects.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No projects found.\nCreate a new project to get started.',
+                              textAlign: TextAlign.center,
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredProjects.length,
+                            itemBuilder: (context, index) {
+                              final project = _filteredProjects[index];
+                              return _buildProjectCard(project);
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateProjectDialog(),
