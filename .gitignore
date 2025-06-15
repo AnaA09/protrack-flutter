@@ -31,6 +31,17 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Flutter specific build artifacts
+*.cache.dill.track.dill
+*.cache.dill
+/build/74c7adeadb121246e25488a50851b578/
+/build/98969ba48dc09e4722054c8a015f2557/
+/build/reports/
+/build/native_assets/
+/build/.cxx/
+/build/app/
+/build/flutter_assets/
+
 # Symbolication related
 app.*.symbols
 
@@ -124,8 +135,7 @@ yarn-error.log*
 # Generated files
 *.g.dart
 *.freezed.dart
-*.chopper.dart
-*.gr.dart
+*.mocks.dart
 
 # Coverage
 coverage/
@@ -183,3 +193,55 @@ Thumbs.db
 
 # Archive files
 *.zip
+
+# Android build artifacts
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/captures/
+/android/app/outputs/
+/android/app/*.apk
+/android/app/*.aab
+/android/app/release/
+/android/app/debug/
+/android/app/profile/
+/android/local.properties
+/android/.settings/
+/android/.project
+/android/.classpath
+/android/.gradle
+/android/gradle/wrapper/gradle-wrapper.jar
+/android/gradlew
+/android/gradlew.bat
+/android/key.properties
+/android/.externalNativeBuild
+/android/.cxx
+/android/app/.cxx/
+/android/app/libs/
+/android/app/src/main/assets/flutter_assets/
+/android/app/src/main/jniLibs/
+/android/app/src/debug/
+/android/app/src/profile/
+/android/app/*.iml
+/android/app/google-services.json
+/android/app/google-play-services_lib/
+/android/app/src/main/res/raw/
+
+# NDK-related
+**/android/app/.cxx/
+**/android/.cxx/
+**/android/app/.externalNativeBuild/
+**/android/.externalNativeBuild/
+**/android/app/src/main/jniLibs/
+**/android/app/src/*/obj/
+
+# Gradle-related
+.gradle/
+**/android/.gradle/
+**/android/gradle/caches/
+**/android/gradle/wrapper/dists/
+**/android/gradle/daemon/
+**/android/gradle/native/
+**/android/gradle/wrapper/gradle-wrapper.jar
+**/android/gradlew
+**/android/gradlew.bat

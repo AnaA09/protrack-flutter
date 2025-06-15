@@ -136,10 +136,10 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         title: Text(widget.entry.name),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-      ),
-      body: Padding(
+      ),      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
             Text('Model: \t${widget.entry.model ?? '-'}',
                 style: const TextStyle(fontSize: 16)),
@@ -211,23 +211,42 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                 Card(
                   color: Colors.green[50],
                   child: ListTile(
-                    title: Text('Purpose: ${_currentBooking!.purpose}'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            'From: ${_currentBooking!.formattedStartDateTime}'),
-                        Text('To: ${_currentBooking!.formattedEndDateTime}'),
-                        Text('Status: ${_currentBooking!.status}'),
-                        if (_currentBooking!.userFullName != null &&
-                            _currentBooking!.userFullName!.isNotEmpty)
-                          Text('Booked by: ${_currentBooking!.userFullName}')
-                        else if (_currentBooking!.userId == _currentUserId)
-                          const Text('Booked by: You',
-                              style: TextStyle(fontWeight: FontWeight.w500)),
-                        if (_currentBooking!.notes.isNotEmpty)
-                          Text('Notes: ${_currentBooking!.notes}'),
-                      ],
+                    title: Text('Purpose: ${_currentBooking!.purpose}'),                    subtitle: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'From: ${_currentBooking!.formattedStartDateTime}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'To: ${_currentBooking!.formattedEndDateTime}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Status: ${_currentBooking!.status}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (_currentBooking!.userFullName != null &&
+                              _currentBooking!.userFullName!.isNotEmpty)
+                            Text(
+                              'Booked by: ${_currentBooking!.userFullName}',
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          else if (_currentBooking!.userId == _currentUserId)
+                            const Text(
+                              'Booked by: You',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          if (_currentBooking!.notes.isNotEmpty)
+                            Text(
+                              'Notes: ${_currentBooking!.notes}',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                        ],
+                      ),
                     ),
                     trailing: (_currentBooking!.userId == _currentUserId)
                         ? IconButton(
@@ -293,22 +312,42 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     color: Colors.blue[50],
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      title: Text('Purpose: ${booking.purpose}'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('From: ${booking.formattedStartDateTime}'),
-                          Text('To: ${booking.formattedEndDateTime}'),
-                          Text('Status: ${booking.status}'),
-                          if (booking.userFullName != null &&
-                              booking.userFullName!.isNotEmpty)
-                            Text('Booked by: ${booking.userFullName}')
-                          else if (booking.userId == _currentUserId)
-                            const Text('Booked by: You',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                          if (booking.notes.isNotEmpty)
-                            Text('Notes: ${booking.notes}'),
-                        ],
+                      title: Text('Purpose: ${booking.purpose}'),                      subtitle: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'From: ${booking.formattedStartDateTime}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'To: ${booking.formattedEndDateTime}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Status: ${booking.status}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (booking.userFullName != null &&
+                                booking.userFullName!.isNotEmpty)
+                              Text(
+                                'Booked by: ${booking.userFullName}',
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            else if (booking.userId == _currentUserId)
+                              const Text(
+                                'Booked by: You',
+                                style: TextStyle(fontWeight: FontWeight.w500),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            if (booking.notes.isNotEmpty)
+                              Text(
+                                'Notes: ${booking.notes}',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
+                          ],
+                        ),
                       ),
                       trailing: (booking.userId == _currentUserId)
                           ? IconButton(
@@ -369,28 +408,47 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       fontSize: 16,
                       color: Colors.grey),
                 ),
-                const SizedBox(height: 4),
-                ..._pastBookings.take(3).map((booking) => Card(
+                const SizedBox(height: 4),                ..._pastBookings.take(3).map((booking) => Card(
                       color: Colors.grey[100],
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text('Purpose: ${booking.purpose}'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('From: ${booking.formattedStartDateTime}'),
-                            Text('To: ${booking.formattedEndDateTime}'),
-                            Text('Status: ${booking.status}'),
-                            if (booking.userFullName != null &&
-                                booking.userFullName!.isNotEmpty)
-                              Text('Booked by: ${booking.userFullName}')
-                            else if (booking.userId == _currentUserId)
-                              const Text('Booked by: You',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w500)),
-                            if (booking.notes.isNotEmpty)
-                              Text('Notes: ${booking.notes}'),
-                          ],
+                        subtitle: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'From: ${booking.formattedStartDateTime}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'To: ${booking.formattedEndDateTime}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'Status: ${booking.status}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (booking.userFullName != null &&
+                                  booking.userFullName!.isNotEmpty)
+                                Text(
+                                  'Booked by: ${booking.userFullName}',
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              else if (booking.userId == _currentUserId)
+                                const Text(
+                                  'Booked by: You',
+                                  style: TextStyle(fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              if (booking.notes.isNotEmpty)
+                                Text(
+                                  'Notes: ${booking.notes}',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     )),
