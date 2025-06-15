@@ -221,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Settings'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Navigate to settings page
+              Navigator.pushNamed(context, AppRoutes.settings);
             },
           ),
           ListTile(
