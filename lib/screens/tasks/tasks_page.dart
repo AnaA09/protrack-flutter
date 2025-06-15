@@ -18,13 +18,21 @@ class TasksPage extends StatefulWidget {
 
 class _TasksPageState extends State<TasksPage> {
   List<Task> _tasks = [];
+  List<Task> _filteredTasks = [];
   List<Project> _projects = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadTasks();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTasks() async {
@@ -62,6 +70,7 @@ class _TasksPageState extends State<TasksPage> {
       setState(() {
         _projects = projects;
         _tasks = allTasks;
+        _filteredTasks = allTasks; // Initialize filtered tasks
         _isLoading = false;
       });
     } catch (e) {
@@ -104,6 +113,21 @@ class _TasksPageState extends State<TasksPage> {
     return project.name;
   }
 
+  void _filterTasks(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredTasks = List.from(_tasks);
+      } else {
+        _filteredTasks = _tasks
+            .where((task) =>
+                task.name.toLowerCase().contains(query.toLowerCase()) ||
+                (task.description ?? '').toLowerCase().contains(query.toLowerCase()) ||
+                _getProjectName(task.projectId).toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,22 +140,53 @@ class _TasksPageState extends State<TasksPage> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadTasks,
-              child: _tasks.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No tasks found.\nCreate a new task to get started.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _filterTasks,
+                      decoration: InputDecoration(
+                        hintText: 'Search tasks...',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 2,
+                          ),
+                        ),
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _tasks.length,
-                      itemBuilder: (context, index) {
-                        final task = _tasks[index];
-                        return _buildTaskCard(task);
-                      },
                     ),
+                  ),
+                  Expanded(
+                    child: _filteredTasks.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No tasks found.\nCreate a new task to get started.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredTasks.length,
+                            itemBuilder: (context, index) {
+                              final task = _filteredTasks[index];
+                              return _buildTaskCard(task);
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
     );
   }

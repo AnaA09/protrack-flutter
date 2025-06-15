@@ -17,13 +17,21 @@ class EntriesScreen extends StatefulWidget {
 
 class _EntriesScreenState extends State<EntriesScreen> {
   List<Entry> _entries = [];
+  List<Entry> _filteredEntries = [];
   bool _isLoading = true;
   String _errorMessage = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadEntries();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadEntries() async {
@@ -39,6 +47,7 @@ class _EntriesScreenState extends State<EntriesScreen> {
 
       setState(() {
         _entries = entries;
+        _filteredEntries = entries; // Initialize filtered list
         _isLoading = false;
       });
     } catch (e) {
@@ -89,6 +98,22 @@ class _EntriesScreenState extends State<EntriesScreen> {
     }
   }
 
+  void _filterEntries(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredEntries = List.from(_entries);
+      } else {
+        _filteredEntries = _entries
+            .where((entry) =>
+                entry.name.toLowerCase().contains(query.toLowerCase()) ||
+                (entry.model?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+                (entry.manufacturer?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+                (entry.location?.toLowerCase().contains(query.toLowerCase()) ?? false))
+            .toList();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,7 +152,7 @@ class _EntriesScreenState extends State<EntriesScreen> {
       );
     }
 
-    if (_entries.isEmpty) {
+    if (_filteredEntries.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -152,13 +177,36 @@ class _EntriesScreenState extends State<EntriesScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadEntries,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _entries.length,
-        itemBuilder: (context, index) {
-          final entry = _entries[index];
-          return _buildEntryCard(entry);
-        },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterEntries,
+              decoration: InputDecoration(
+                hintText: 'Search entries...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _filteredEntries.length,
+              itemBuilder: (context, index) {
+                final entry = _filteredEntries[index];
+                return _buildEntryCard(entry);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

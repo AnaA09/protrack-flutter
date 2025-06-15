@@ -15,13 +15,21 @@ class LabsScreen extends StatefulWidget {
 
 class _LabsScreenState extends State<LabsScreen> {
   List<Lab> _labs = [];
+  List<Lab> _filteredLabs = [];
   bool _isLoading = true;
   String _errorMessage = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadLabs();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLabs() async {
@@ -36,6 +44,7 @@ class _LabsScreenState extends State<LabsScreen> {
 
       setState(() {
         _labs = labs;
+        _filteredLabs = labs;
         _isLoading = false;
       });
     } catch (e) {
@@ -44,6 +53,21 @@ class _LabsScreenState extends State<LabsScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _filterLabs(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredLabs = List.from(_labs);
+      } else {
+        _filteredLabs = _labs
+            .where((lab) =>
+                lab.name.toLowerCase().contains(query.toLowerCase()) ||
+                (lab.description ?? '').toLowerCase().contains(query.toLowerCase()) ||
+                (lab.location ?? '').toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
   }
 
   void _navigateToCategories(Lab lab) {
@@ -119,7 +143,7 @@ class _LabsScreenState extends State<LabsScreen> {
       );
     }
 
-    if (_labs.isEmpty) {
+    if (_filteredLabs.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -158,13 +182,41 @@ class _LabsScreenState extends State<LabsScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadLabs,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _labs.length,
-        itemBuilder: (context, index) {
-          final lab = _labs[index];
-          return _buildLabCard(lab);
-        },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterLabs,
+              decoration: InputDecoration(
+                hintText: 'Search labs...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _filteredLabs.length,
+              itemBuilder: (context, index) {
+                final lab = _filteredLabs[index];
+                return _buildLabCard(lab);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

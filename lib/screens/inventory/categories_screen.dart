@@ -17,13 +17,21 @@ class CategoriesScreen extends StatefulWidget {
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
   List<Category> _categories = [];
+  List<Category> _filteredCategories = [];
   bool _isLoading = true;
   String _errorMessage = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCategories() async {
@@ -39,6 +47,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
       setState(() {
         _categories = categories;
+        _filteredCategories = categories; // Initialize filtered list
         _isLoading = false;
       });
     } catch (e) {
@@ -85,6 +94,17 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
+  void _filterCategories(String query) {
+    final filtered = _categories.where((category) {
+      return category.name.toLowerCase().contains(query.toLowerCase()) ||
+          category.description.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+
+    setState(() {
+      _filteredCategories = filtered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,7 +144,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       );
     }
 
-    if (_categories.isEmpty) {
+    if (_filteredCategories.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -149,13 +169,38 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadCategories,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final category = _categories[index];
-          return _buildCategoryCard(category);
-        },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterCategories,
+              decoration: InputDecoration(
+                hintText: 'Search categories...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.blue, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.blue, width: 2),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _filteredCategories.length,
+              itemBuilder: (context, index) {
+                final category = _filteredCategories[index];
+                return _buildCategoryCard(category);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

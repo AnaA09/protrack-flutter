@@ -20,14 +20,22 @@ class ActivitiesPage extends StatefulWidget {
 
 class _ActivitiesPageState extends State<ActivitiesPage> {
   List<Activity> _activities = [];
+  List<Activity> _filteredActivities = [];
   List<Task> _tasks = [];
   List<Project> _projects = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadActivities();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadActivities() async {
@@ -81,6 +89,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
         _projects = projects;
         _tasks = allTasks;
         _activities = allActivities;
+        _filteredActivities = allActivities; // Initialize filtered list
         _isLoading = false;
       });
     } catch (e) {
@@ -139,6 +148,22 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
     return project.name;
   }
 
+  void _filterActivities(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredActivities = List.from(_activities);
+      } else {
+        _filteredActivities = _activities
+            .where((activity) =>
+                activity.name.toLowerCase().contains(query.toLowerCase()) ||
+                (activity.description ?? '').toLowerCase().contains(query.toLowerCase()) ||
+                _getTaskName(activity.taskId).toLowerCase().contains(query.toLowerCase()) ||
+                _getProjectName(activity.projectId).toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -146,12 +171,34 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
         title: const Text('Activities'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterActivities,
+              decoration: InputDecoration(
+                hintText: 'Search activities...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+              ),
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadActivities,
-              child: _activities.isEmpty
+              child: _filteredActivities.isEmpty
                   ? const Center(
                       child: Text(
                         'No activities found.\nCreate a new activity to get started.',
@@ -161,9 +208,9 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: _activities.length,
+                      itemCount: _filteredActivities.length,
                       itemBuilder: (context, index) {
-                        final activity = _activities[index];
+                        final activity = _filteredActivities[index];
                         return _buildActivityCard(activity);
                       },
                     ),
