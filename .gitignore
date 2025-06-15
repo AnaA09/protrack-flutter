@@ -245,5 +245,6 @@ Thumbs.db
 **/android/gradle/wrapper/gradle-wrapper.jar
 **/android/gradlew
 **/android/gradlew.bat
+android/**/*
 .metadata
 pubspec.lock
