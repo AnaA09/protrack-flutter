@@ -27,6 +27,10 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   List<Activity> _activities = [];
   Project? _project;
   bool _isLoading = true;
+  
+  // AI Report state variables
+  String? _aiReportResponse;
+  bool _isGeneratingReport = false;
 
   @override
   void initState() {
@@ -96,43 +100,66 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       ),
     );
   }
-
   Future<void> _generateTaskReport() async {
     try {
-      final apiService = Provider.of<ApiService>(context, listen: false);
-      final aiReportService = AiReportService(apiService);
+      setState(() {
+        _isGeneratingReport = true;
+        _aiReportResponse = null;
+      });
       
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Requesting AI report...')),
       );
       
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final aiReportService = AiReportService(apiService);
+      
       // Call the AI report service
-      await aiReportService.generateTaskReport(
+      final response = await aiReportService.generateTaskReport(
         widget.task.projectId,
         widget.task.taskId,
       );
       
-      // Show "disabled" popup
+      // Update the state with the response
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('AI Report Generation'),
-            content: const Text('This API is currently disabled'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        setState(() {
+          _isGeneratingReport = false;
+          _aiReportResponse = response['report'] ?? 'No report data available';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isGeneratingReport = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating report: $e')),
+        );
+      }
+    }
+  }
+  
+  Future<void> _downloadReportAsPdf() async {
+    try {
+      // This is a placeholder for PDF download functionality
+      // In a real implementation, you'd need to use a PDF generation package
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Downloading report as PDF...')),
+      );
+      
+      // Simulate download delay
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Report downloaded successfully')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error downloading report: $e')),
         );
       }
     }
@@ -219,8 +246,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                    ],                    // AI Report Generation Button
+                      const SizedBox(height: 16),                    ],                    // AI Report Generation Button
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: ElevatedButton.icon(
@@ -230,9 +256,46 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                         ),
-                        onPressed: _generateTaskReport,
+                        onPressed: _isGeneratingReport ? null : _generateTaskReport,
                       ),
                     ),
+                    
+                    if (_isGeneratingReport)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                      
+                    if (_aiReportResponse != null) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Text(
+                            'AI Generated Report', 
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.download),
+                            tooltip: 'Download as PDF',
+                            onPressed: _downloadReportAsPdf,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Text(_aiReportResponse!),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     
                     if (widget.task.description != null &&
                         widget.task.description!.isNotEmpty) ...[

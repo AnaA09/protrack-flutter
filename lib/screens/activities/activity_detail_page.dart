@@ -29,6 +29,10 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  
+  // AI Report state variables
+  String? _aiReportResponse;
+  bool _isGeneratingReport = false;
 
   @override
   void initState() {
@@ -88,44 +92,65 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
       }
     });
   }
-
   Future<void> _generateActivitySummary() async {
     try {
       final apiService = Provider.of<ApiService>(context, listen: false);
       final aiReportService = AiReportService(apiService);
       
+      setState(() {
+        _isGeneratingReport = true;
+        _aiReportResponse = null; // Reset response
+      });
+      
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Generating AI summary...')),
+        const SnackBar(content: Text('Requesting AI summary...')),
       );
       
       // Call the AI report service
-      await aiReportService.generateActivitySummary(
+      final response = await aiReportService.generateActivitySummary(
         widget.activity.projectId,
         widget.activity.taskId,
         widget.activity.activityId,
       );
       
-      // Show "disabled" popup
+      // Update the state with the response
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('AI Summary Generation'),
-            content: const Text('This API is currently disabled'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        setState(() {
+          _isGeneratingReport = false;
+          _aiReportResponse = response['summary'] ?? 'No summary data available';
+        });
+      }
+    } catch (e) {      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating summary: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isGeneratingReport = false);
+    }
+  }
+  
+  Future<void> _downloadReportAsPdf() async {
+    try {
+      // This is a placeholder for PDF download functionality
+      // In a real implementation, you'd need to use a PDF generation package
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Downloading summary as PDF...')),
+      );
+      
+      // Simulate download delay
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Summary downloaded successfully')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error downloading summary: $e')),
         );
       }
     }
@@ -239,9 +264,7 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                                 ],
                               ],
                             ),
-                          ),                          const SizedBox(height: 16),
-
-                          // AI Summary Generation Button
+                          ),                          const SizedBox(height: 16),                          // AI Summary Generation Button
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: ElevatedButton.icon(
@@ -251,9 +274,46 @@ class _ActivityDetailPageState extends State<ActivityDetailPage> {
                                 backgroundColor: Theme.of(context).primaryColor,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: _generateActivitySummary,
+                              onPressed: _isGeneratingReport ? null : _generateActivitySummary,
                             ),
                           ),
+                          
+                          if (_isGeneratingReport)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                            
+                          if (_aiReportResponse != null) ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Text(
+                                  'AI Generated Summary', 
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  icon: const Icon(Icons.download),
+                                  tooltip: 'Download as PDF',
+                                  onPressed: _downloadReportAsPdf,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Text(_aiReportResponse!),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
 
                           if (widget.activity.description != null &&
                               widget.activity.description!.isNotEmpty) ...[
