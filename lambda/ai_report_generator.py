@@ -19,14 +19,15 @@ TASKS_TABLE = os.environ.get('TASKS_TABLE', 'Tasks')
 ACTIVITIES_TABLE = os.environ.get('ACTIVITIES_TABLE', 'Activities')
 
 # Bedrock model configuration
-BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'meta.llama2-70b-chat-v1')
+BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'meta.llama3-2-1b-instruct-v1:0')
 
 # CORS headers configuration
 CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
-    'Access-Control-Allow-Credentials': 'true'
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token,X-Requested-With',
+    'Access-Control-Allow-Credentials': 'false',  # Set to false when using wildcard origin
+    'Access-Control-Max-Age': '86400'
 }
 
 def create_response(status_code, body):
@@ -37,7 +38,7 @@ def create_response(status_code, body):
         json_body = json.dumps(body)
     
     response = {
-        'statusCode': status_code,
+        'statusCode': int(status_code),  # Ensure statusCode is an integer
         'headers': CORS_HEADERS,
         'body': json_body
     }
@@ -105,59 +106,59 @@ def get_tasks_for_project(project_id, user_id):
         raise
 
 def call_bedrock_llama(prompt, max_tokens=2048):
-    """Call AWS Bedrock with Llama model to generate text"""
+    """Call AWS Bedrock with Llama model"""
     try:
-        # Prepare the request body for Llama model
+        # Format prompt according to Llama 3.2 instruction format
+        formatted_prompt = f"""<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+{prompt}
+<|eot_id|>
+<|start_header_id|>assistant<|end_header_id|>
+"""
+        
+        # Prepare request body with correct structure for Llama 3.2
         request_body = {
-            "prompt": f"[INST] {prompt} [/INST]",
+            "prompt": formatted_prompt,
             "max_gen_len": max_tokens,
             "temperature": 0.7,
             "top_p": 0.9
         }
         
+        # Convert to JSON
+        body = json.dumps(request_body)
+        
+        # Get model ID from environment variable
+        model_id = os.environ.get('BEDROCK_MODEL_ID', 'meta.llama3-2-1b-instruct-v1:0')
+        
         # Call Bedrock
         response = bedrock_runtime.invoke_model(
-            modelId=BEDROCK_MODEL_ID,
-            body=json.dumps(request_body),
+            modelId=model_id,
+            body=body,
             contentType='application/json',
             accept='application/json'
         )
         
         # Parse response
         response_body = json.loads(response['body'].read())
-        generated_text = response_body.get('generation', '').strip()
         
-        return {
-            'success': True,
-            'text': generated_text
-        }
-        
-    except NoCredentialsError:
-        return {
-            'success': False,
-            'error': 'AWS credentials not found or insufficient permissions for Bedrock'
-        }
-    except ClientError as e:
-        error_code = e.response['Error']['Code']
-        if error_code == 'AccessDeniedException':
+        # Extract generated text from response
+        if 'generation' in response_body:
+            generated_text = response_body['generation'].strip()
             return {
-                'success': False,
-                'error': 'Access denied to AWS Bedrock. Please check IAM permissions'
-            }
-        elif error_code == 'ValidationException':
-            return {
-                'success': False,
-                'error': 'Invalid request to Bedrock model'
+                'success': True,
+                'text': generated_text
             }
         else:
+            logger.error(f"Unexpected response format: {response_body}")
             return {
                 'success': False,
-                'error': f'Bedrock API error: {str(e)}'
+                'error': f"Unexpected response format from Bedrock: {response_body}"
             }
+            
     except Exception as e:
+        logger.error(f"Error calling Bedrock: {str(e)}")
         return {
             'success': False,
-            'error': f'Unexpected error calling Bedrock: {str(e)}'
+            'error': f"Bedrock API error: {str(e)}"
         }
 
 def update_activity_ai_report(activity_id, task_id, ai_report):
@@ -454,10 +455,15 @@ def lambda_handler(event, context):
     
     # Handle OPTIONS requests (for CORS)
     if http_method == 'OPTIONS':
-        return create_response(200, '')
+        logger.info(f"Handling OPTIONS request for path: {path}")
+        return create_response(200, {"message": "CORS preflight"})
         
-    # Extract user ID from authorization context
-    user_id = event['requestContext']['authorizer']['claims']['sub']
+    # Extract user ID from authorization context (only for authenticated requests)
+    try:
+        user_id = event['requestContext']['authorizer']['claims']['sub']
+    except (KeyError, TypeError):
+        logger.error("Missing or invalid authorization context")
+        return create_response(401, {"error": "Unauthorized - missing user context"})
     
     # Parse request body if present
     body = {}
