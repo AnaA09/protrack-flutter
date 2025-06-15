@@ -156,9 +156,15 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
         _filteredActivities = _activities
             .where((activity) =>
                 activity.name.toLowerCase().contains(query.toLowerCase()) ||
-                (activity.description ?? '').toLowerCase().contains(query.toLowerCase()) ||
-                _getTaskName(activity.taskId).toLowerCase().contains(query.toLowerCase()) ||
-                _getProjectName(activity.projectId).toLowerCase().contains(query.toLowerCase()))
+                (activity.description ?? '')
+                    .toLowerCase()
+                    .contains(query.toLowerCase()) ||
+                _getTaskName(activity.taskId)
+                    .toLowerCase()
+                    .contains(query.toLowerCase()) ||
+                _getProjectName(activity.projectId)
+                    .toLowerCase()
+                    .contains(query.toLowerCase()))
             .toList();
       }
     });

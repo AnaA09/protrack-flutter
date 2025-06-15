@@ -121,8 +121,12 @@ class _TasksPageState extends State<TasksPage> {
         _filteredTasks = _tasks
             .where((task) =>
                 task.name.toLowerCase().contains(query.toLowerCase()) ||
-                (task.description ?? '').toLowerCase().contains(query.toLowerCase()) ||
-                _getProjectName(task.projectId).toLowerCase().contains(query.toLowerCase()))
+                (task.description ?? '')
+                    .toLowerCase()
+                    .contains(query.toLowerCase()) ||
+                _getProjectName(task.projectId)
+                    .toLowerCase()
+                    .contains(query.toLowerCase()))
             .toList();
       }
     });
@@ -173,7 +177,8 @@ class _TasksPageState extends State<TasksPage> {
                             child: Text(
                               'No tasks found.\nCreate a new task to get started.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey),
                             ),
                           )
                         : ListView.builder(

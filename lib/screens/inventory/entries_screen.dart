@@ -106,9 +106,14 @@ class _EntriesScreenState extends State<EntriesScreen> {
         _filteredEntries = _entries
             .where((entry) =>
                 entry.name.toLowerCase().contains(query.toLowerCase()) ||
-                (entry.model?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-                (entry.manufacturer?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-                (entry.location?.toLowerCase().contains(query.toLowerCase()) ?? false))
+                (entry.model?.toLowerCase().contains(query.toLowerCase()) ??
+                    false) ||
+                (entry.manufacturer
+                        ?.toLowerCase()
+                        .contains(query.toLowerCase()) ??
+                    false) ||
+                (entry.location?.toLowerCase().contains(query.toLowerCase()) ??
+                    false))
             .toList();
       }
     });

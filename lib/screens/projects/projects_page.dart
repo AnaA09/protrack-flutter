@@ -329,7 +329,7 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
   DateTime? _endDate;
   bool _isSubmitting = false;
   List<String> _requiredInstruments = [];
-  
+
   final List<String> _statusOptions = [
     'OPEN',
     'IN_PROGRESS',
@@ -364,18 +364,20 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
       });
     }
   }
-  
+
   String _formatDateOnly(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
-    Future<void> _createProject() async {
+
+  Future<void> _createProject() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
 
     try {
       final apiService = Provider.of<ApiService>(context, listen: false);
-      final cognitoService = Provider.of<CognitoService>(context, listen: false);
+      final cognitoService =
+          Provider.of<CognitoService>(context, listen: false);
       final projectService = ProjectService(apiService);
 
       // Create a new project object with all the fields
@@ -455,7 +457,8 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),              TextFormField(
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
                   labelText: 'Description (Optional)',
@@ -531,7 +534,8 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
                       ),
                     ),
                   ),
-                ],              ),
+                ],
+              ),
               const SizedBox(height: 24),
               // Required instruments selection
               Column(
@@ -557,18 +561,22 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
                     icon: const Icon(Icons.add),
                     label: const Text('Add Instrument'),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                     ),
                   ),
                 ],
-              ),              const SizedBox(height: 24),
+              ),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isSubmitting ? null : () {
-                        Navigator.of(context).pop();
-                      },
+                      onPressed: _isSubmitting
+                          ? null
+                          : () {
+                              Navigator.of(context).pop();
+                            },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -650,7 +658,7 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
   void _showInstrumentSelectionDialog() {
     // Example instrument list - in a real app, this might come from an API
     final availableInstruments = [
-      'Microscope', 
+      'Microscope',
       'Centrifuge',
       'Spectrophotometer',
       'PCR Machine',
@@ -667,37 +675,36 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
       builder: (context) => AlertDialog(
         title: const Text('Select Instruments'),
         content: StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return SizedBox(
-              width: double.maxFinite,
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: availableInstruments.length,
-                itemBuilder: (context, index) {
-                  final instrument = availableInstruments[index];
-                  final isSelected = _requiredInstruments.contains(instrument);
-                  
-                  return CheckboxListTile(
-                    title: Text(instrument),
-                    value: isSelected,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        if (value == true) {
-                          _requiredInstruments.add(instrument);
-                        } else {
-                          _requiredInstruments.remove(instrument);
-                        }
-                      });
-                      
-                      // Also update parent state
-                      this.setState(() {});
-                    },
-                  );
-                },
-              ),
-            );
-          }
-        ),
+            builder: (BuildContext context, StateSetter setState) {
+          return SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: availableInstruments.length,
+              itemBuilder: (context, index) {
+                final instrument = availableInstruments[index];
+                final isSelected = _requiredInstruments.contains(instrument);
+
+                return CheckboxListTile(
+                  title: Text(instrument),
+                  value: isSelected,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        _requiredInstruments.add(instrument);
+                      } else {
+                        _requiredInstruments.remove(instrument);
+                      }
+                    });
+
+                    // Also update parent state
+                    this.setState(() {});
+                  },
+                );
+              },
+            ),
+          );
+        }),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

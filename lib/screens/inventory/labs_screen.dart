@@ -63,8 +63,12 @@ class _LabsScreenState extends State<LabsScreen> {
         _filteredLabs = _labs
             .where((lab) =>
                 lab.name.toLowerCase().contains(query.toLowerCase()) ||
-                (lab.description ?? '').toLowerCase().contains(query.toLowerCase()) ||
-                (lab.location ?? '').toLowerCase().contains(query.toLowerCase()))
+                (lab.description ?? '')
+                    .toLowerCase()
+                    .contains(query.toLowerCase()) ||
+                (lab.location ?? '')
+                    .toLowerCase()
+                    .contains(query.toLowerCase()))
             .toList();
       }
     });

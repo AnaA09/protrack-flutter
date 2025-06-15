@@ -103,7 +103,8 @@ class _ProTrackAppState extends State<ProTrackApp> {
         Provider.value(value: _userMetadataService),
         Provider.value(value: _apiService),
         Provider.value(value: _inventoryService),
-      ],      child: MaterialApp(
+      ],
+      child: MaterialApp(
         title: 'ProTrack',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

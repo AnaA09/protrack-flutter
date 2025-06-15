@@ -136,7 +136,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
         title: Text(widget.entry.name),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-      ),      body: Padding(
+      ),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -211,7 +212,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                 Card(
                   color: Colors.green[50],
                   child: ListTile(
-                    title: Text('Purpose: ${_currentBooking!.purpose}'),                    subtitle: SingleChildScrollView(
+                    title: Text('Purpose: ${_currentBooking!.purpose}'),
+                    subtitle: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -312,7 +314,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                     color: Colors.blue[50],
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      title: Text('Purpose: ${booking.purpose}'),                      subtitle: SingleChildScrollView(
+                      title: Text('Purpose: ${booking.purpose}'),
+                      subtitle: SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -408,7 +411,8 @@ class _EntryDetailScreenState extends State<EntryDetailScreen> {
                       fontSize: 16,
                       color: Colors.grey),
                 ),
-                const SizedBox(height: 4),                ..._pastBookings.take(3).map((booking) => Card(
+                const SizedBox(height: 4),
+                ..._pastBookings.take(3).map((booking) => Card(
                       color: Colors.grey[100],
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
