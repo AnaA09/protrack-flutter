@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProTrack - Academic Research Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .presentation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .navigation {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 2px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-buttons button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .nav-buttons button:hover { background: #0056b3; }
+        .nav-buttons button:disabled { background: #6c757d; cursor: not-allowed; }
+
+        .slide {
+            display: none;
+            padding: 40px;
+            min-height: 600px;
+            animation: fadeIn 0.5s;
+        }
+
+        .slide.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide h1 {
+            color: #1e3c72;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 15px;
+        }
+
+        .slide h2 {
+            color: #2a5298;
+            font-size: 2em;
+            margin-bottom: 25px;
+            margin-top: 30px;
+        }
+
+        .slide ul {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+
+        .slide li {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .feature-card h3 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .emoji { font-size: 1.5em; margin-right: 10px; }
+
+        .title-slide {
+            text-align: center;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 60px 40px;
+            margin: 20px 0;
+        }
+
+        .title-slide h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            border: none;
+            color: white;
+        }
+
+        .architecture-diagram {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 2;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .component-box {
+            background: #f8f9fa;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .ai-integration-box {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .workflow-diagram {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: monospace;
+            color: #e65100;
+        }
+
+        .pipeline-flow {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            color: #1565c0;
+        }
+
+        .conclusion-slide {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 40px;
+            margin: 20px 0;
+        }
+
+        .conclusion-slide h2, .conclusion-slide h3 { color: white; }
+
+        @media (max-width: 768px) {
+            .slide { padding: 20px; }
+            .slide h1 { font-size: 2em; }
+            .components-grid { grid-template-columns: 1fr; }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="header">
+            <h1>ProTrack - Academic Research Platform</h1>
+            <p>Professional Presentation for Professors and Students</p>
+        </div>
+
+        <div class="navigation">
+            <div class="slide-counter">
+                Slide <span id="current-slide">1</span> of <span id="total-slides">15</span>
+            </div>
+            <div class="nav-buttons">
+                <button onclick="previousSlide()" id="prev-btn">← Previous</button>
+                <button onclick="nextSlide()" id="next-btn">Next →</button>
+                <button onclick="toggleFullscreen()">Fullscreen</button>
+            </div>
+        </div>
+
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="title-slide">
+                <h1>ProTrack</h1>
+                <h2>An AWS-Powered Project Management Platform</h2>
+                <h2>For Academic Research & Laboratory Management</h2>
+                <p style="font-size: 1.3em; margin-top: 30px;"><strong>Presented by:</strong> [Your Name]</p>
+                <p style="font-size: 1.2em;"><strong>Date:</strong> [Current Date]</p>
+                <p style="font-size: 1.2em;"><strong>Audience:</strong> Professors and Students</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Mission -->
+        <div class="slide">
+            <h1>ProTrack's Mission</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🎯</span>Streamlines Academic Research Workflows</h3>
+                    <ul>
+                        <li>End-to-end project lifecycle management</li>
+                        <li>From research planning to completion reporting</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">💻</span>Digitizes Laboratory Operations</h3>
+                    <ul>
+                        <li>Real-time inventory tracking for instruments, chemicals, and cultures</li>
+                        <li>Automated booking and scheduling systems</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🤝</span>Enhances Collaboration</h3>
+                    <ul>
+                        <li>Multi-user project coordination</li>
+                        <li>Role-based access control for different user types</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🤖</span>Leverages AI for Insights</h3>
+                    <ul>
+                        <li>Automated report generation using AWS Bedrock</li>
+                        <li>Intelligent analysis of project progress and outcomes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Architecture -->
+        <div class="slide">
+            <h1>High-Level Architecture</h1>
+            <div class="architecture-diagram">
+                Flutter App ↔ AWS API Gateway ↔ Lambda Functions<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DynamoDB Tables<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AWS Cognito<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AWS Bedrock
+            </div>
+            <h2>Key Components:</h2>
+            <ul>
+                <li><strong>Frontend:</strong> Flutter cross-platform application</li>
+                <li><strong>API Layer:</strong> AWS API Gateway for REST endpoints</li>
+                <li><strong>Compute:</strong> AWS Lambda for serverless business logic</li>
+                <li><strong>Database:</strong> DynamoDB for scalable data storage</li>
+                <li><strong>Authentication:</strong> AWS Cognito for user management</li>
+                <li><strong>AI Services:</strong> AWS Bedrock for intelligent features</li>
+            </ul>
+        </div>
+
+        <!-- Slide 4: Serverless Advantages -->
+        <div class="slide">
+            <h1>Why AWS Serverless?</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🚀</span>Scalability</h3>
+                    <ul>
+                        <li>Automatic scaling from 0 to millions of requests</li>
+                        <li>No infrastructure management overhead</li>
+                        <li>Pay-per-use pricing model</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔒</span>Security & Reliability</h3>
+                    <ul>
+                        <li>AWS-managed security patches and updates</li>
+                        <li>Built-in DDoS protection and SSL/TLS encryption</li>
+                        <li>99.99% availability SLA</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">💰</span>Cost Efficiency</h3>
+                    <ul>
+                        <li>No upfront infrastructure costs</li>
+                        <li>Pay only for actual usage</li>
+                        <li>Optimal for academic budgets</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">⚡</span>Performance</h3>
+                    <ul>
+                        <li>Global edge locations for low latency</li>
+                        <li>Automatic load balancing</li>
+                        <li>Sub-second response times</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Components Overview -->
+        <div class="slide">
+            <h1>ProTrack System Overview</h1>
+            <div class="components-grid">
+                <div class="component-box">
+                    <h3>User & Role Management</h3>
+                    <ul>
+                        <li>Authentication</li>
+                        <li>Authorization</li>
+                        <li>Profile Management</li>
+                        <li>Role Assignment</li>
+                    </ul>
+                </div>
+                <div class="component-box">
+                    <h3>Project Management</h3>
+                    <ul>
+                        <li>Project CRUD</li>
+                        <li>Task Tracking</li>
+                        <li>Activity Logs</li>
+                        <li>Progress Monitoring</li>
+                    </ul>
+                </div>
+                <div class="component-box">
+                    <h3>Inventory Management</h3>
+                    <ul>
+                        <li>Lab Management</li>
+                        <li>Instrument Tracking</li>
+                        <li>Booking System</li>
+                        <li>Availability Check</li>
+                    </ul>
+                </div>
+                <div class="ai-integration-box">
+                    <h3>Gen AI Integration</h3>
+                    <ul>
+                        <li>Report Generation</li>
+                        <li>Data Analysis</li>
+                        <li>Intelligent Insights</li>
+                        <li>Automated Summaries</li>
+                    </ul>
+                </div>
+            </div>
+            <h2>Integration Points:</h2>
+            <ul>
+                <li>Cross-component data sharing</li>
+                <li>Unified authentication across all modules</li>
+                <li>Real-time synchronization</li>
+                <li>AI-powered analytics across all components</li>
+            </ul>
+        </div>
+
+        <!-- Slide 6: User & Role Management -->
+        <div class="slide">
+            <h1>User & Role Management System</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🔐</span>Authentication Features</h3>
+                    <ul>
+                        <li>AWS Cognito Integration</li>
+                        <li>Multi-factor authentication support</li>
+                        <li>Social login (Google, Apple)</li>
+                        <li>Password reset and recovery</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">👥</span>Role-Based Access Control</h3>
+                    <ul>
+                        <li><strong>Student Role:</strong> Limited access, read-only inventory</li>
+                        <li><strong>Researcher Role:</strong> Full project management, booking privileges</li>
+                        <li><strong>Lab Manager Role:</strong> Inventory management, user oversight</li>
+                        <li><strong>Administrator Role:</strong> System-wide configuration</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📱</span>Profile Management</h3>
+                    <ul>
+                        <li>Personal information and preferences</li>
+                        <li>Academic affiliation and department</li>
+                        <li>Notification settings and communication preferences</li>
+                        <li>Activity history and achievement tracking</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔄</span>Security Features</h3>
+                    <ul>
+                        <li>JWT token-based authentication</li>
+                        <li>Automatic session management</li>
+                        <li>Audit logging for compliance</li>
+                        <li>Fine-grained permissions system</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Project Management -->
+        <div class="slide">
+            <h1>Project Management Capabilities</h1>
+            <h2><span class="emoji">📋</span>Hierarchical Project Structure</h2>
+            <div class="workflow-diagram">
+                Project<br>
+                ├── Tasks<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;├── Activities<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── Detailed Logs<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── Resource Usage<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Time Tracking
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🎯</span>Project Lifecycle Management</h3>
+                    <ul>
+                        <li>Creation, planning, execution, and closure</li>
+                        <li>Status tracking (Open, In Progress, Completed, On Hold)</li>
+                        <li>Deadline management and milestone tracking</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📋</span>Task Organization</h3>
+                    <ul>
+                        <li>Hierarchical task breakdown</li>
+                        <li>Priority assignment and dependencies</li>
+                        <li>Progress monitoring and reporting</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔧</span>Resource Integration</h3>
+                    <ul>
+                        <li>Required instrument specification</li>
+                        <li>Automatic availability checking</li>
+                        <li>Resource conflict resolution</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📊</span>Reporting & Analytics</h3>
+                    <ul>
+                        <li>Real-time project dashboards</li>
+                        <li>Progress visualization and charts</li>
+                        <li>Resource utilization reports</li>
+                        <li>AI-generated project summaries</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Inventory Management -->
+        <div class="slide">
+            <h1>Advanced Inventory Management</h1>
+            <h2><span class="emoji">🏭</span>Three-Tier Structure</h2>
+            <div class="workflow-diagram">
+                Labs<br>
+                ├── Categories (Instruments, Chemicals, Cultures)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;├── Individual Items<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── Booking System<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── Availability Tracking<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Usage History
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">📦</span>Multi-Category Support</h3>
+                    <ul>
+                        <li>Scientific instruments and equipment</li>
+                        <li>Chemical reagents and consumables</li>
+                        <li>Biological cultures and samples</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">⚡</span>Real-Time Availability</h3>
+                    <ul>
+                        <li>Live status updates (Available, In Use, Maintenance)</li>
+                        <li>Automated booking conflict prevention</li>
+                        <li>Calendar-based scheduling system</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📅</span>Booking & Scheduling</h3>
+                    <ul>
+                        <li>Advanced booking system with date/time slots</li>
+                        <li>Automatic conflict detection and resolution</li>
+                        <li>Email notifications and reminders</li>
+                        <li>Usage analytics and patterns</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔧</span>Maintenance Tracking</h3>
+                    <ul>
+                        <li>Maintenance schedules and history</li>
+                        <li>Equipment lifecycle management</li>
+                        <li>Cost tracking and budgeting</li>
+                        <li>Compliance and safety records</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Gen AI Integration -->
+        <div class="slide">
+            <h1>AI-Powered Intelligence with AWS Bedrock</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🤖</span>AWS Bedrock Integration</h3>
+                    <ul>
+                        <li><strong>Meta Llama 3.2 Model</strong></li>
+                        <li>Advanced natural language processing</li>
+                        <li>Context-aware report generation</li>
+                        <li>Intelligent data analysis</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📈</span>Automated Report Generation</h3>
+                    <ul>
+                        <li>Project progress summaries</li>
+                        <li>Task completion analysis</li>
+                        <li>Activity detail compilation</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🧠</span>Intelligent Insights</h3>
+                    <ul>
+                        <li>Pattern identification in project data</li>
+                        <li>Resource utilization optimization</li>
+                        <li>Predictive analytics for planning</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔄</span>Natural Language Processing</h3>
+                    <ul>
+                        <li>Automated documentation from activity logs</li>
+                        <li>Intelligent search across projects</li>
+                        <li>Content summarization and extraction</li>
+                    </ul>
+                </div>
+            </div>
+            <h2>Integration Points:</h2>
+            <ul>
+                <li>Real-time analysis during project updates</li>
+                <li>On-demand report generation</li>
+                <li>Contextual suggestions and recommendations</li>
+                <li>Automated compliance documentation</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: User Management Deep Dive -->
+        <div class="slide">
+            <h1>Deep Dive: User & Role Management</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🏛️</span>AWS Cognito Architecture</h3>
+                    <ul>
+                        <li><strong>User Pools:</strong> Centralized user directory</li>
+                        <li><strong>Identity Pools:</strong> Federated identity management</li>
+                        <li><strong>JWT Tokens:</strong> Secure, stateless authentication</li>
+                        <li><strong>Multi-Factor Authentication:</strong> Enhanced security</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">👤</span>User Lifecycle Management</h3>
+                    <ul>
+                        <li>Email verification and validation</li>
+                        <li>Academic affiliation verification</li>
+                        <li>Initial role assignment</li>
+                        <li>Profile setup and preferences</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔐</span>Authentication Flows</h3>
+                    <ul>
+                        <li>Traditional username/password</li>
+                        <li>Social login integration (Google, Apple)</li>
+                        <li>Single Sign-On (SSO) readiness</li>
+                        <li>Remember device functionality</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🛡️</span>Advanced Security Features</h3>
+                    <ul>
+                        <li><strong>Role Hierarchy:</strong> Inherited permissions system</li>
+                        <li><strong>Resource-Level Permissions:</strong> Fine-grained access control</li>
+                        <li><strong>Audit Logging:</strong> Complete activity tracking</li>
+                        <li><strong>Session Management:</strong> Automatic timeout and refresh</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Project Management Deep Dive -->
+        <div class="slide">
+            <h1>Deep Dive: Project Management</h1>
+            <h2><span class="emoji">🔄</span>Project Lifecycle Automation</h2>
+            <div class="workflow-diagram">
+                Draft → Planning → Active → Review → Completed<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;On Hold → Archive
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">⚙️</span>Automated Transitions</h3>
+                    <ul>
+                        <li>Task completion triggers project updates</li>
+                        <li>Resource availability affects project scheduling</li>
+                        <li>Deadline proximity generates alerts and notifications</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📊</span>Resource Dependencies</h3>
+                    <ul>
+                        <li>Automatic instrument requirement validation</li>
+                        <li>Cross-project resource conflict detection</li>
+                        <li>Alternative resource suggestions</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📈</span>Progress Analytics</h3>
+                    <ul>
+                        <li>Completion percentage calculations</li>
+                        <li>Time-to-completion predictions</li>
+                        <li>Resource utilization efficiency metrics</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🤝</span>Collaboration Tools</h3>
+                    <ul>
+                        <li><strong>Multi-User Projects:</strong> Shared ownership and responsibilities</li>
+                        <li><strong>Activity Streams:</strong> Real-time update feeds</li>
+                        <li><strong>Comment System:</strong> Contextual discussions</li>
+                        <li><strong>Notification Engine:</strong> Customizable alert system</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Inventory Management Deep Dive -->
+        <div class="slide">
+            <h1>Deep Dive: Inventory Management</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🏭</span>Hierarchical Organization</h3>
+                    <ul>
+                        <li><strong>Laboratory Level:</strong> Physical location and access control</li>
+                        <li><strong>Category Level:</strong> Logical grouping by type and function</li>
+                        <li><strong>Item Level:</strong> Individual trackable assets</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📅</span>Smart Scheduling</h3>
+                    <ul>
+                        <li>Automatic slot optimization</li>
+                        <li>Buffer time for setup/cleanup</li>
+                        <li>Recurring booking patterns</li>
+                        <li>Maintenance window awareness</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📈</span>Analytics & Optimization</h3>
+                    <ul>
+                        <li><strong>Usage Pattern Analysis:</strong> Peak hours, popular equipment</li>
+                        <li><strong>Efficiency Metrics:</strong> Utilization rates, idle time tracking</li>
+                        <li><strong>Predictive Maintenance:</strong> Usage-based scheduling</li>
+                        <li><strong>Cost Analysis:</strong> Per-project resource costs</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔔</span>Notification System</h3>
+                    <ul>
+                        <li><strong>Booking Confirmations:</strong> Automated email/SMS alerts</li>
+                        <li><strong>Reminder System:</strong> Pre-booking notifications</li>
+                        <li><strong>Status Changes:</strong> Real-time equipment status updates</li>
+                        <li><strong>Maintenance Alerts:</strong> Scheduled and emergency notifications</li>
+                    </ul>
+                </div>
+            </div>
+            <h2>Advanced Booking System Flow:</h2>
+            <div class="pipeline-flow">
+                Request → Availability Check → Conflict Detection → Resolution → Confirmation → Calendar Integration
+            </div>
+        </div>
+
+        <!-- Slide 13: AI Integration Deep Dive -->
+        <div class="slide">
+            <h1>Deep Dive: AI Integration</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🧠</span>AWS Bedrock Implementation</h3>
+                    <ul>
+                        <li><strong>Model Selection:</strong> Meta Llama 3.2 for optimal performance</li>
+                        <li><strong>Prompt Engineering:</strong> Context-aware generation templates</li>
+                        <li><strong>Response Processing:</strong> Structured output formatting</li>
+                        <li><strong>Error Handling:</strong> Fallback mechanisms for reliability</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🎯</span>Project Summaries</h3>
+                    <ul>
+                        <li>Comprehensive progress reports</li>
+                        <li>Key milestone identification</li>
+                        <li>Risk assessment and recommendations</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔍</span>Activity Analysis</h3>
+                    <ul>
+                        <li>Pattern recognition in research activities</li>
+                        <li>Efficiency improvement suggestions</li>
+                        <li>Resource optimization recommendations</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔮</span>Predictive Insights</h3>
+                    <ul>
+                        <li>Project timeline predictions</li>
+                        <li>Resource demand forecasting</li>
+                        <li>Potential bottleneck identification</li>
+                    </ul>
+                </div>
+            </div>
+            <h2>Report Generation Pipeline:</h2>
+            <div class="pipeline-flow">
+                Data Collection → Context Assembly → AI Prompt → Model Processing → Response Validation → Report Formatting
+            </div>
+            <h2><span class="emoji">🔄</span>Continuous Learning</h2>
+            <ul>
+                <li><strong>Usage Pattern Analysis:</strong> AI model performance tracking</li>
+                <li><strong>Feedback Integration:</strong> User input for model improvement</li>
+                <li><strong>Context Enhancement:</strong> Historical data incorporation</li>
+            </ul>
+        </div>
+
+        <!-- Slide 14: Future Enhancements -->
+        <div class="slide">
+            <h1>Roadmap for Enhanced Capabilities</h1>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><span class="emoji">🚀</span>Advanced AI Features</h3>
+                    <ul>
+                        <li><strong>Natural Language Queries:</strong> "Show me all chemistry projects using spectrometers"</li>
+                        <li><strong>Intelligent Scheduling:</strong> AI-optimized resource allocation</li>
+                        <li><strong>Research Trend Analysis:</strong> Cross-project pattern identification</li>
+                        <li><strong>Automated Literature Integration:</strong> Research paper recommendations</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📱</span>Enhanced Mobile Experience</h3>
+                    <ul>
+                        <li><strong>Offline Functionality:</strong> Continue work without internet</li>
+                        <li><strong>Push Notifications:</strong> Real-time updates and alerts</li>
+                        <li><strong>Barcode/QR Code Scanning:</strong> Quick inventory management</li>
+                        <li><strong>Voice Commands:</strong> Hands-free operation in lab environments</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">🔗</span>Integration Expansions</h3>
+                    <ul>
+                        <li><strong>Learning Management Systems:</strong> Canvas, Blackboard integration</li>
+                        <li><strong>Research Databases:</strong> PubMed, Google Scholar connections</li>
+                        <li><strong>Financial Systems:</strong> Budget tracking and expense management</li>
+                        <li><strong>IoT Device Integration:</strong> Smart lab equipment connectivity</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span class="emoji">📊</span>Advanced Analytics</h3>
+                    <ul>
+                        <li><strong>Institutional Dashboards:</strong> University-wide research metrics</li>
+                        <li><strong>Predictive Analytics:</strong> Equipment failure prediction</li>
+                        <li><strong>Compliance Reporting:</strong> Automated regulatory documentation</li>
+                        <li><strong>Performance Benchmarking:</strong> Inter-department comparisons</li>
+                    </ul>
+                </div>
+            </div>
+            <h2><span class="emoji">🌐</span>Collaboration Features</h2>
+            <ul>
+                <li><strong>Multi-Institution Support:</strong> Cross-university collaborations</li>
+                <li><strong>External Partner Access:</strong> Industry collaboration tools</li>
+                <li><strong>Video Conference Integration:</strong> Remote collaboration support</li>
+                <li><strong>Document Version Control:</strong> Collaborative editing capabilities</li>
+            </ul>
+        </div>
+
+        <!-- Slide 15: Conclusion -->
+        <div class="slide">
+            <div class="conclusion-slide">
+                <h1>ProTrack: Transforming Academic Research</h1>
+                <div class="feature-grid">
+                    <div class="feature-card" style="background: rgba(255,255,255,0.1); border: 2px solid white;">
+                        <h3 style="color: white;"><span class="emoji">🎯</span>Key Achievements</h3>
+                        <ul style="color: white;">
+                            <li><strong>Unified Platform:</strong> Single solution for all research management needs</li>
+                            <li><strong>Scalable Architecture:</strong> From individual researchers to entire institutions</li>
+                            <li><strong>AI-Enhanced Productivity:</strong> Intelligent automation of routine tasks</li>
+                            <li><strong>Cost-Effective:</strong> Serverless architecture optimizes resource usage</li>
+                        </ul>
+                    </div>
+                    <div class="feature-card" style="background: rgba(255,255,255,0.1); border: 2px solid white;">
+                        <h3 style="color: white;"><span class="emoji">📈</span>Measurable Benefits</h3>
+                        <ul style="color: white;">
+                            <li><strong>Time Savings:</strong> 40-60% reduction in administrative overhead</li>
+                            <li><strong>Resource Efficiency:</strong> 30% improvement in equipment utilization</li>
+                            <li><strong>Collaboration:</strong> Enhanced cross-team project coordination</li>
+                            <li><strong>Compliance:</strong> Automated documentation and audit trails</li>
+                        </ul>
+                    </div>
+                </div>
+                <h2><span class="emoji">🌟</span>Innovation Highlights</h2>
+                <ul>
+                    <li><strong>First-of-Kind:</strong> Academic-focused serverless project management</li>
+                    <li><strong>AI Integration:</strong> Cutting-edge AWS Bedrock implementation</li>
+                    <li><strong>Comprehensive Scope:</strong> From planning to reporting in one platform</li>
+                    <li><strong>Future-Ready:</strong> Extensible architecture for evolving needs</li>
+                </ul>
+                <h2><span class="emoji">🚀</span>Call to Action</h2>
+                <ul>
+                    <li><strong>Pilot Program:</strong> Ready for institutional testing</li>
+                    <li><strong>Faculty Collaboration:</strong> Seeking academic partnerships</li>
+                    <li><strong>Student Projects:</strong> Opportunities for thesis and research work</li>
+                    <li><strong>Industry Connections:</strong> Bridging academic and commercial research</li>
+                </ul>
+                <h1 style="margin-top: 40px;"><span class="emoji">💡</span>Questions & Discussion</h1>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 15;
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            
+            if (n > totalSlides) currentSlide = totalSlides;
+            if (n < 1) currentSlide = 1;
+            
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[currentSlide - 1].classList.add('active');
+            
+            document.getElementById('current-slide').textContent = currentSlide;
+            document.getElementById('total-slides').textContent = totalSlides;
+            
+            document.getElementById('prev-btn').disabled = (currentSlide === 1);
+            document.getElementById('next-btn').disabled = (currentSlide === totalSlides);
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 1) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            } else if (e.key === 'Escape') {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullscreen();
+            }
+        });
+
+        showSlide(1);
+    </script>
+</body>
+</html> 
